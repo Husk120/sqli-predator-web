@@ -5,10 +5,16 @@ export interface ScanProfile {
     crawlDepth: number;
     requestDelay: number;
     timeout: number;
+
+    // Time-based SQLi detection settings
+    timeThreshold: number;
     timeSamples: number;
+
     testAllHeaders: boolean;
     testSecondOrder: boolean;
+
     oobDomain: string;
+
     authCookie: string;
     authCreds: string;
 }
