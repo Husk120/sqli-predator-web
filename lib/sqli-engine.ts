@@ -256,7 +256,7 @@ export interface ScanConfig {
 }
 
 export async function runScan(
-    config: ScanConfig,
+    config: ScanProfile,
     onProgress: (phase: string, progress: number) => void
 ): Promise<SQLiFinding[]> {
     const findings: SQLiFinding[] = [];
