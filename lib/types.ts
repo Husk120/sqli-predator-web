@@ -18,7 +18,9 @@ export interface ScanProfile {
     authCookie: string;
     authCreds: string;
 }
-
+export interface ScanConfig extends ScanProfile {
+    timeThreshold: number;
+}
 export interface ScanResult {
     id: string;
     timestamp: string;
