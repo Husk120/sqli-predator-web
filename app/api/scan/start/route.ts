@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
                 crawlDepth: crawlDepth || 1,
                 requestDelay: requestDelay || 0.5,
                 timeout: 30,
+                timeThreshold: 3,
                 timeSamples: timeSamples || 3,
                 testAllHeaders: testAllHeaders || false,
                 testSecondOrder: testSecondOrder || false,
