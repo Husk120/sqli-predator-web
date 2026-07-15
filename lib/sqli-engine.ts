@@ -490,11 +490,15 @@ async function crawlTarget(target: string, config: ScanConfig) {
                 const href = match[1];
                 if (href && !href.startsWith("#") && !href.startsWith("javascript:") && !href.startsWith("mailto:")) {
                     try {
-                        const absoluteUrl = new URL(href, url).href;
-                        if (absoluteUrl.startsWith(target.split("?")[0].replace(/\/$/, "")) || absoluteUrl.includes(url.host || url)) {
-                            await crawl(absoluteUrl, depth + 1);
-                        }
-                    } catch { }
+    const absoluteUrl = new URL(href, url).href;
+
+    if (
+        absoluteUrl.startsWith(target.split("?")[0].replace(/\/$/, "")) ||
+        absoluteUrl.includes(new URL(url).host)
+    ) {
+        await crawl(absoluteUrl, depth + 1);
+    }
+} catch { }
                 }
             }
 
