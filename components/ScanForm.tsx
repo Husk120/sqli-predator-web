@@ -28,6 +28,7 @@ export function ScanForm({ onStart, scanning }: ScanFormProps) {
             crawlDepth,
             requestDelay,
             timeout: 30,
+            timeThreshold: 3,
             timeSamples,
             testAllHeaders,
             testSecondOrder,
