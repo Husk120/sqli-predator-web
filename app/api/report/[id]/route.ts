@@ -2,18 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { getScan } from "@/lib/store";
 
 export async function GET(
-    request: NextRequest,
-    { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-    const scan = getScan(params.id);
+  const { id } = await params;
 
-    if (!scan) {
-        return NextResponse.json({ error: "Scan not found" }, { status: 404 });
-    }
+  const scan = getScan(id);
 
-    if (scan.status !== "completed") {
-        return NextResponse.json({ error: "Scan not yet completed" }, { status: 400 });
-    }
+  if (!scan) {
+    return NextResponse.json(
+      { error: "Scan not found" },
+      { status: 404 }
+    );
+  }
 
-    return NextResponse.json(scan);
+  if (scan.status !== "completed") {
+    return NextResponse.json(
+      { error: "Scan not yet completed" },
+      { status: 400 }
+    );
+  }
+
+  return NextResponse.json(scan);
 }
