@@ -1,4 +1,4 @@
-import { SQLiFinding } from "./types";
+import type { ScanProfile } from "@/lib/types";
 
 // ─── Payload Types ───
 
