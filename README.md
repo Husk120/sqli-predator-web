@@ -1,103 +1,159 @@
-🦅 SQLi-PREDATOR v4.0
-Advanced SQL Injection Detection Engine — Multi-Vector, Polymorphic, OOB & Statistical Analysis
+# 🦅 SQLi-PREDATOR v4.0
 
+### Advanced SQL Injection Detection Engine
 
+**Multi-Vector • Polymorphic Payload Generation • OOB Detection • Statistical Analysis**
 
-A full-stack web application for detecting SQL injection vulnerabilities in authorized lab targets (DVWA, bWAPP, Juice Shop, etc.). Built with Next.js 15, TypeScript, and Tailwind CSS.
+SQLi-PREDATOR is a full-stack web application designed for detecting SQL injection vulnerabilities in **authorized training environments and security labs** such as DVWA, bWAPP, OWASP Juice Shop, Hack The Box, and TryHackMe.
 
-✨ Features
+Built using **Next.js 15**, **TypeScript**, and **Tailwind CSS**, the platform combines multiple SQL injection detection methodologies with a modern web interface and detailed reporting capabilities.
 
+---
 
-Feature	Description
-8 Detection Methods	Error-Based, Boolean Blind, Time-Based (Statistical), UNION Probe, OOB DNS/HTTP, Second-Order, Stacked Query, Status Anomaly
-460+ Base Payloads	Polymorphic mutation engine generates infinite variants — comment injection, hex encoding, case mutation, URL encoding
-7 Injection Vectors	GET, POST, Cookies, User-Agent, Referer, X-Forwarded-For, X-Forwarded-Host
-Statistical Time Analysis	Multiple samples, z-score, p-value confidence scoring
-OOB Callback Detection	Interactsh integration for DNS/HTTP out-of-band detection
-WAF Bypass Engine	Polymorphic transformations to evade signature-based filters
-Dark-Mode UI	Professional Tailwind CSS design — shareable scan results with live progress
-Exportable Reports	JSON download with full detail on every finding
-🚀 Quick Start
-1. Deploy to Vercel (one click)
-Deploy with Vercel
+## ✨ Features
 
-Or manually:
+| Feature                       | Description                                                                                                                                                 |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **8 Detection Techniques**    | Error-Based, Boolean Blind, Time-Based Statistical Analysis, UNION Probe, OOB DNS/HTTP, Second-Order, Stacked Query Detection, and Status Anomaly Detection |
+| **460+ Base Payloads**        | Polymorphic mutation engine generates virtually unlimited payload variations using encoding, comments, and case transformations                             |
+| **7 Injection Vectors**       | GET, POST, Cookies, User-Agent, Referer, X-Forwarded-For, and X-Forwarded-Host                                                                              |
+| **Statistical Time Analysis** | Uses multiple samples, z-scores, and p-value confidence scoring for reliable timing attacks                                                                 |
+| **OOB Callback Detection**    | Supports Interactsh integration for DNS and HTTP callback monitoring                                                                                        |
+| **WAF Bypass Engine**         | Payload mutations designed to evaluate signature-based filtering mechanisms                                                                                 |
+| **Dark Mode Interface**       | Professional Tailwind CSS interface with live scan progress updates                                                                                         |
+| **Exportable Reports**        | Download complete scan findings in JSON format                                                                                                              |
 
-bash
+---
 
+## 🔍 Detection Capabilities
 
+### ⚡ Error-Based Detection
 
+Identifies SQL errors returned by the application and extracts useful database information from error messages.
+
+### 🔍 Boolean-Based Blind Detection
+
+Performs TRUE/FALSE response comparisons to determine injectable parameters without relying on visible errors.
+
+### ⏱️ Time-Based Detection
+
+Uses statistically significant response delays combined with confidence scoring to identify time-based blind SQL injection.
+
+### 🔗 UNION-Based Enumeration
+
+Attempts column enumeration and database fingerprinting using UNION SELECT techniques.
+
+### 🌐 Out-of-Band Detection
+
+Uses DNS and HTTP callbacks to identify vulnerabilities that do not produce direct application responses.
+
+### 🔄 Second-Order Injection Detection
+
+Detects payloads stored by the application that execute during later interactions.
+
+### 📚 Stacked Query Detection
+
+Tests for support of multiple SQL statements in a single request.
+
+### 📊 HTTP Status Analysis
+
+Monitors unexpected changes in response status codes that may indicate successful injection.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Clone the Repository
+
+```bash
 git clone https://github.com/KushGupta/sqli-predator-web.git
 cd sqli-predator-web
+```
+
+### 2. Install Dependencies
+
+```bash
 npm install
+```
+
+### 3. Start the Development Server
+
+```bash
 npm run dev
-2. Run against a lab target
-bash
+```
 
+The application will be available at:
 
-
-# DVWA
-docker run --rm -it -p 80:80 vulnerables/web-dvwa
-
-# OWASP Juice Shop
-docker run --rm -it -p 3000:3000 bkimminich/juice-shop
-
-# bWAPP
-docker run --rm -it -p 80:80 raesene/bwapp
-3. Open the web UI
-
-
-
+```text
 http://localhost:3000
-Enter your target URL, configure options, and start scanning.
+```
 
-🧪 What It Detects
+---
 
+## 🐳 Lab Targets
 
+SQLi-PREDATOR is designed exclusively for **authorized environments and intentionally vulnerable applications**.
 
-⚡ ERROR-BASED     ── Triggers DB errors, extracts info via error messages
-🔍 BOOLEAN-BASED   ── Compares TRUE/FALSE responses, blind extraction
-⏱️ TIME-BASED      ── Statistical delay analysis with z-score/p-value
-🔗 UNION PROBE     ── Column enumeration via UNION SELECT NULL
-🌐 OOB DNS/HTTP    ── Out-of-band callback detection
-🔄 SECOND-ORDER    ── Stored injection that triggers on subsequent requests
-📚 STACKED QUERY   ── Multiple statement execution
-📊 STATUS ANOMALY  ── HTTP status code differential analysis
-🏗️ Project Structure
+### DVWA
 
+```bash
+docker run --rm -it -p 80:80 vulnerables/web-dvwa
+```
 
+### OWASP Juice Shop
 
+```bash
+docker run --rm -it -p 3000:3000 bkimminich/juice-shop
+```
+
+### bWAPP
+
+```bash
+docker run --rm -it -p 80:80 raesene/bwapp
+```
+
+---
+
+## 🏗️ Project Structure
+
+```text
 sqli-predator-web/
 ├── app/
-│   ├── layout.tsx            # Root layout with header/nav
-│   ├── page.tsx              # Home — scan form + hero
-│   ├── globals.css           # Tailwind + custom styles
+│   ├── layout.tsx
+│   ├── page.tsx
+│   ├── globals.css
 │   ├── scans/
-│   │   ├── page.tsx          # Scan history
+│   │   ├── page.tsx
 │   │   └── [id]/
-│   │       └── page.tsx      # Scan detail + findings
+│   │       └── page.tsx
 │   └── api/
 │       ├── scan/
-│       │   ├── start/route.ts         # POST — start scan
-│       │   └── status/[id]/route.ts   # GET — poll progress
-│       └── report/[id]/route.ts       # GET — full results
+│       │   ├── start/route.ts
+│       │   └── status/[id]/route.ts
+│       └── report/[id]/route.ts
+│
 ├── components/
-│   ├── Header.tsx            # Navigation bar
-│   └── ScanForm.tsx          # Scan configuration form
+│   ├── Header.tsx
+│   └── ScanForm.tsx
+│
 ├── lib/
-│   ├── sqli-engine.ts        # Core detection engine (TypeScript)
-│   ├── types.ts              # TypeScript type definitions
-│   └── store.ts              # In-memory scan store
-├── vercel.json               # Function timeout config
+│   ├── sqli-engine.ts
+│   ├── types.ts
+│   └── store.ts
+│
+├── vercel.json
 └── package.json
-📋 Configuration
-Vercel Function Timeout
-The scan API supports up to 5 minutes (Hobby) or 30 minutes (Pro) via Fluid Compute:
+```
 
-json
+---
 
+## ⚙️ Configuration
 
+### Vercel Function Configuration
 
+For long-running scans, configure Vercel Fluid Compute:
+
+```json
 {
   "functions": {
     "app/api/scan/start/route.ts": {
@@ -106,33 +162,108 @@ json
     }
   }
 }
-Environment Variables
+```
 
+---
 
-Variable	Description	Required
-NEXT_PUBLIC_APP_URL	Public URL of your deployment (for links in reports)	No
-🔒 Scope & Compliance
-Authorized use only — tool displays a warning before every scan
-Lab targets only — designed for DVWA, bWAPP, Juice Shop, HackTheBox, TryHackMe
-No destructive payloads — detection only (DROP/INSERT/UPDATE explicitly excluded)
-Rate limiting — configurable delay between requests to avoid overwhelming targets
-⚠️ Unauthorized scanning of production systems is illegal. You are responsible for complying with all applicable laws.
+## 🌍 Environment Variables
 
-📸 Screenshots
-(Add screenshots here after deployment)
+| Variable              | Description                                     | Required |
+| --------------------- | ----------------------------------------------- | -------- |
+| `NEXT_PUBLIC_APP_URL` | Public deployment URL used in generated reports | No       |
 
-Home page — Scan form with all configuration options
-Live scan — Progress bar with phase descriptions
-Results — Severity summary cards + per-finding detail views
-Finding detail — Payload used, DB type, error signatures, AI explanation, remediation steps
-🤝 Contributing
-Fork the repository
-Create a feature branch (git checkout -b feature/amazing-feature)
-Commit your changes (git commit -m 'Add amazing feature')
-Push to the branch (git push origin feature/amazing-feature)
-Open a Pull Request
-📝 License
-Educational Use Only.
+---
 
-This software is provided for authorized security testing and educational purposes. Users are responsible for compliance with all applicable laws. Unauthorized use against production systems or third-party applications is illegal.
+## 📈 Reporting Features
 
+Each scan report includes:
+
+* Vulnerability severity assessment
+* Injection vector identification
+* Payload details
+* Response comparisons
+* Database fingerprinting results
+* Statistical confidence scores
+* OOB callback evidence
+* Recommended remediation guidance
+
+Reports can be exported as JSON for further analysis or documentation.
+
+---
+
+## 📸 Screenshots
+
+Add screenshots after deployment:
+
+* Home page with scan configuration
+* Live scan progress dashboard
+* Findings summary view
+* Detailed vulnerability report page
+* Exported JSON report example
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome.
+
+1. Fork the repository
+2. Create a new feature branch
+
+```bash
+git checkout -b feature/amazing-feature
+```
+
+3. Commit your changes
+
+```bash
+git commit -m "Add amazing feature"
+```
+
+4. Push to your branch
+
+```bash
+git push origin feature/amazing-feature
+```
+
+5. Open a Pull Request
+
+---
+
+## 🔒 Responsible Use
+
+SQLi-PREDATOR is intended solely for:
+
+* Security education
+* Training environments
+* Capture The Flag platforms
+* Authorized penetration testing
+* Personal laboratory environments
+
+The project intentionally excludes destructive payloads such as:
+
+* `DROP`
+* `DELETE`
+* `INSERT`
+* `UPDATE`
+* `TRUNCATE`
+
+Users are solely responsible for ensuring compliance with all applicable laws and regulations.
+
+---
+
+## ⚠️ Legal Disclaimer
+
+This software is provided strictly for **educational purposes and authorized security testing**.
+
+Unauthorized scanning or testing of systems without explicit permission may violate local, national, or international laws. The authors and contributors assume no liability for misuse or damages resulting from the use of this software.
+
+---
+
+## 📄 License
+
+**Educational Use Only**
+
+Copyright © 2026 Kush Gupta
+
+This project is provided for learning, research, and authorized security assessments only.
