@@ -29,6 +29,26 @@ export default function HomePage() {
 
             const data = await resp.json();
             setScanId(data.id);
+
+            // Store initial scan state in localStorage for fast client hydration
+            try {
+                const initialScan = {
+                    id: data.id,
+                    timestamp: new Date().toISOString(),
+                    target: profile.targetUrl,
+                    status: "running",
+                    progress: 0,
+                    currentPhase: "Starting...",
+                    findings: [],
+                    duration: 0,
+                };
+                localStorage.setItem(`sqli_scan_${data.id}`, JSON.stringify(initialScan));
+                const listRaw = localStorage.getItem("sqli_predator_scans");
+                let list = listRaw ? JSON.parse(listRaw) : [];
+                list.unshift(initialScan);
+                localStorage.setItem("sqli_predator_scans", JSON.stringify(list));
+            } catch {}
+
             router.push(`/scans/${data.id}`);
         } catch (err: any) {
             setError(err.message);

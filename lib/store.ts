@@ -1,10 +1,12 @@
 import { ScanResult } from "./types";
 
-// In-memory store. For production, use a database.
-// Vercel deploys are stateless, so this resets on each cold start.
-// For persistence, add Vercel KV / Postgres / Supabase.
+// Persistent global store in Node environment across HMR / module re-evaluations.
+declare global {
+    var __scansStore: Map<string, ScanResult> | undefined;
+}
 
-const scans = new Map<string, ScanResult>();
+const scans = globalThis.__scansStore || new Map<string, ScanResult>();
+globalThis.__scansStore = scans;
 
 export function createScan(scan: ScanResult): void {
     scans.set(scan.id, scan);

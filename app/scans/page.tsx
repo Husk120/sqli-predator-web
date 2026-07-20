@@ -9,14 +9,36 @@ export default function ScansPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // In a real app, this would fetch from an API.
-        // For Vercel, we store in memory, so we show what's available.
-        // You'd replace with a call to your DB.
-        setLoading(false);
-    }, []);
+        const fetchScans = async () => {
+            try {
+                const resp = await fetch("/api/scans");
+                if (resp.ok) {
+                    const data: ScanResult[] = await resp.json();
+                    if (data && data.length > 0) {
+                        setScans(data);
+                        // Save to localStorage as backup
+                        try {
+                            localStorage.setItem("sqli_predator_scans", JSON.stringify(data));
+                        } catch {}
+                        setLoading(false);
+                        return;
+                    }
+                }
+            } catch {}
 
-    // Since scans are in-memory, the user navigates here from a scan.
-    // In production, add Vercel KV and fetch from there.
+            // Fallback to localStorage if API returned empty or failed
+            try {
+                const localData = localStorage.getItem("sqli_predator_scans");
+                if (localData) {
+                    setScans(JSON.parse(localData));
+                }
+            } catch {}
+
+            setLoading(false);
+        };
+
+        fetchScans();
+    }, []);
 
     return (
         <div className="space-y-6">
@@ -31,7 +53,7 @@ export default function ScansPage() {
             </div>
 
             {loading ? (
-                <div className="text-center py-12 text-gray-500">Loading...</div>
+                <div className="text-center py-12 text-gray-500">Loading scans...</div>
             ) : scans.length === 0 ? (
                 <div className="text-center py-12 border border-dashed border-surface-border rounded-xl">
                     <div className="text-4xl mb-3">🦅</div>
@@ -55,20 +77,21 @@ export default function ScansPage() {
                                 <div>
                                     <p className="text-sm font-medium text-white">{scan.target}</p>
                                     <p className="text-xs text-gray-500 mt-1">
-                                        {new Date(scan.timestamp).toLocaleString()} · {scan.findings.length} findings
+                                        {new Date(scan.timestamp).toLocaleString()} · {scan.findings?.length || 0} findings
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className={`text-xs px-2 py-1 rounded-full ${scan.status === "completed" ? "bg-accent-green/10 text-accent-green" :
-                                            scan.status === "running" ? "bg-accent-blue/10 text-accent-blue pulse-active" :
-                                                scan.status === "failed" ? "bg-accent-red/10 text-accent-red" :
-                                                    "bg-gray-500/10 text-gray-400"
-                                        }`}>
+                                    <span className={`text-xs px-2 py-1 rounded-full ${
+                                        scan.status === "completed" ? "bg-accent-green/10 text-accent-green" :
+                                        scan.status === "running" ? "bg-accent-blue/10 text-accent-blue pulse-active" :
+                                        scan.status === "failed" ? "bg-accent-red/10 text-accent-red" :
+                                        "bg-gray-500/10 text-gray-400"
+                                    }`}>
                                         {scan.status}
                                     </span>
                                 </div>
                             </div>
-                            {scan.status === "completed" && scan.findings.length > 0 && (
+                            {scan.status === "completed" && scan.findings && scan.findings.length > 0 && (
                                 <div className="mt-3 flex gap-1.5">
                                     {Object.entries(
                                         scan.findings.reduce((acc, f) => {
@@ -80,8 +103,8 @@ export default function ScansPage() {
                                             key={sev}
                                             className="text-xs px-2 py-0.5 rounded-full"
                                             style={{
-                                                background: `${SEVERITY_COLORS[sev]}20`,
-                                                color: SEVERITY_COLORS[sev],
+                                                background: `${SEVERITY_COLORS[sev] || '#888'}20`,
+                                                color: SEVERITY_COLORS[sev] || '#888',
                                             }}
                                         >
                                             {sev}: {count}
