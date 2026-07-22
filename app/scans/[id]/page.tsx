@@ -216,7 +216,10 @@ export default function ScanDetailPage() {
     const id = params.id as string;
     const [scan, setScan] = useState<ScanResult | null>(null);
     const [loading, setLoading] = useState(true);
+    const [pollError, setPollError] = useState<string | null>(null);
+    const [isStalled, setIsStalled] = useState(false);
     const retryCountRef = useRef(0);
+    const lastProgressRef = useRef<{ progress: number; time: number } | null>(null);
 
     useEffect(() => {
         let isMounted = true;
@@ -247,25 +250,62 @@ export default function ScanDetailPage() {
             try {
                 const resp = await fetch(`/api/scan/status/${id}`);
                 if (!resp.ok) {
-                    if (retryCountRef.current < 5) {
+                    // On Vercel, the scan may take a moment to appear in Redis after creation.
+                    // Use exponential backoff up to 15 retries (covers ~60s of cold-start delay).
+                    if (retryCountRef.current < 15) {
                         retryCountRef.current++;
-                        setTimeout(poll, 1000);
+                        const delay = Math.min(1000 * Math.pow(1.3, retryCountRef.current), 8000);
+                        setTimeout(poll, delay);
                         return;
                     }
                     const local = loadFromLocal();
-                    if (local && isMounted) setScan(local);
+                    if (local && isMounted) {
+                        setScan(local);
+                    } else if (isMounted) {
+                        setPollError(
+                            "Unable to reach the scan server. The scan may have been lost due to a serverless timeout. " +
+                            "Please try starting a new scan."
+                        );
+                    }
                     if (isMounted) setLoading(false);
                     return;
                 }
 
+                // Reset retry counter on successful response
+                retryCountRef.current = 0;
+                if (isMounted) setPollError(null);
+
                 const data = await resp.json();
 
-                if (data.status === "completed" || data.status === "failed") {
-                    const reportResp = await fetch(`/api/report/${id}`);
-                    if (reportResp.ok) {
-                        const report: ScanResult = await reportResp.json();
-                        if (isMounted) { setScan(report); saveToLocal(report); }
+                // Stall detection: if progress hasn't changed in 90 seconds, warn
+                if (data.status === "running") {
+                    const now = Date.now();
+                    const progress = data.progress || 0;
+                    if (lastProgressRef.current) {
+                        if (progress === lastProgressRef.current.progress) {
+                            if (now - lastProgressRef.current.time > 90_000) {
+                                if (isMounted) setIsStalled(true);
+                            }
+                        } else {
+                            lastProgressRef.current = { progress, time: now };
+                            if (isMounted) setIsStalled(false);
+                        }
                     } else {
+                        lastProgressRef.current = { progress, time: now };
+                    }
+                }
+
+                if (data.status === "completed" || data.status === "failed") {
+                    if (data.status === "completed") {
+                        const reportResp = await fetch(`/api/report/${id}`);
+                        if (reportResp.ok) {
+                            const report: ScanResult = await reportResp.json();
+                            if (isMounted) { setScan(report); saveToLocal(report); }
+                        } else {
+                            if (isMounted) setScan(data as any);
+                        }
+                    } else {
+                        // Failed scan — show the error from the backend
                         if (isMounted) setScan(data as any);
                     }
                     if (isMounted) setLoading(false);
@@ -275,9 +315,22 @@ export default function ScanDetailPage() {
                 if (isMounted) setScan(data as any);
                 if (data.status === "running") setTimeout(poll, 1500);
                 else if (isMounted) setLoading(false);
-            } catch {
+            } catch (err: any) {
+                if (retryCountRef.current < 15) {
+                    retryCountRef.current++;
+                    const delay = Math.min(1000 * Math.pow(1.3, retryCountRef.current), 8000);
+                    setTimeout(poll, delay);
+                    return;
+                }
                 const local = loadFromLocal();
-                if (local && isMounted) setScan(local);
+                if (local && isMounted) {
+                    setScan(local);
+                } else if (isMounted) {
+                    setPollError(
+                        `Failed to connect to scan server: ${err.message || "Network error"}. ` +
+                        "Please check your connection and try refreshing the page."
+                    );
+                }
                 if (isMounted) setLoading(false);
             }
         };
@@ -294,6 +347,26 @@ export default function ScanDetailPage() {
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
                 <p className="text-gray-500">Loading scan...</p>
+            </div>
+        );
+    }
+
+    if (pollError && !scan) {
+        return (
+            <div className="text-center py-24 max-w-lg mx-auto">
+                <div className="text-3xl mb-3">⚠️</div>
+                <p className="text-accent-red text-sm mb-4">{pollError}</p>
+                <div className="flex gap-3 justify-center">
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="text-sm bg-surface-card border border-surface-border px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:border-gray-600 transition-colors"
+                    >
+                        🔄 Retry
+                    </button>
+                    <Link href="/" className="text-sm bg-accent-blue/10 border border-accent-blue/30 px-4 py-2 rounded-lg text-accent-blue hover:bg-accent-blue/20 transition-colors">
+                        Start New Scan
+                    </Link>
+                </div>
             </div>
         );
     }
@@ -363,6 +436,14 @@ export default function ScanDetailPage() {
                             style={{ width: `${scan.progress || 0}%` }}
                         />
                     </div>
+                    {isStalled && (
+                        <div className="bg-yellow-500/5 border border-yellow-500/30 rounded-lg p-2.5 mt-2">
+                            <p className="text-xs text-yellow-500">
+                                ⚠️ Scan progress has not changed for over 90 seconds. The serverless function may have timed out.
+                                If this persists, try starting a new scan.
+                            </p>
+                        </div>
+                    )}
                 </div>
             )}
 

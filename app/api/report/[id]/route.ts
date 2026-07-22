@@ -7,7 +7,7 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  const scan = getScan(id);
+  const scan = await getScan(id);
 
   if (!scan) {
     return NextResponse.json(

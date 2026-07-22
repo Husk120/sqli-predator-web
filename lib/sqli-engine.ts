@@ -1019,7 +1019,7 @@ function computeZScore(measured: number, mean: number, stddev: number): number {
 
 export async function runScan(
     config: ScanProfile,
-    onProgress: (phase: string, progress: number) => void
+    onProgress: (phase: string, progress: number) => void | Promise<void>
 ): Promise<{ findings: SQLiFinding[]; scanLog: string[]; enumeration: any }> {
     const allFindings: SQLiFinding[] = [];
     const scanLog: string[] = [];
@@ -1131,7 +1131,7 @@ export async function runScan(
     // ─────────────────────────────────────────────────
     // Phase 1: Enumeration
     // ─────────────────────────────────────────────────
-    onProgress("Phase 1: Enumerating attack surface", 3);
+    await onProgress("Phase 1: Enumerating attack surface", 3);
     log(`═══ SQLi-PREDATOR v5.0 Autonomous Engine ═══`);
     log(`Target: ${target}`);
     log(`Auth cookie: ${config.authCookie ? "YES (" + config.authCookie.slice(0, 30) + "...)" : "NONE"}`);
@@ -1145,12 +1145,12 @@ export async function runScan(
     log(`Tech stack: ${JSON.stringify(techStack)}`);
     log(`Discovered paths: ${discoveredPaths.length}`);
 
-    onProgress("Phase 1: Enumeration complete", 15);
+    await onProgress("Phase 1: Enumeration complete", 15);
 
     // ─────────────────────────────────────────────────
     // Phase 2: Baselines
     // ─────────────────────────────────────────────────
-    onProgress("Phase 2: Establishing baselines", 18);
+    await onProgress("Phase 2: Establishing baselines", 18);
     log(`── Phase 2: Establishing baselines ──`);
     const baselines = new Map<string, { status: number; length: number; hash: string; mean: number; stddev: number }>();
 
@@ -1209,12 +1209,12 @@ export async function runScan(
         }
     }
 
-    onProgress("Phase 2: Baselines established", 25);
+    await onProgress("Phase 2: Baselines established", 25);
 
     // ─────────────────────────────────────────────────
     // Phase 3: Form Parameter Testing
     // ─────────────────────────────────────────────────
-    onProgress("Phase 3: Testing form parameters", 28);
+    await onProgress("Phase 3: Testing form parameters", 28);
     log(`── Phase 3: Testing form parameters (${forms.length} forms) ──`);
 
     // Build payload set: all base payloads + OOB + polymorphic variants
@@ -1333,7 +1333,9 @@ export async function runScan(
                     }
 
                     testIndex++;
-                    onProgress(`Phase 3: Testing forms [${testIndex}]`, Math.min(FORM_PROGRESS_START + (testIndex / 500) * (FORM_PROGRESS_END - FORM_PROGRESS_START), FORM_PROGRESS_END));
+                    if (testIndex % 10 === 0) {
+                        await onProgress(`Phase 3: Testing forms [${testIndex}]`, Math.min(FORM_PROGRESS_START + (testIndex / 500) * (FORM_PROGRESS_END - FORM_PROGRESS_START), FORM_PROGRESS_END));
+                    }
                     await sleep(config.requestDelay * 500);
                 }
             }
@@ -1413,7 +1415,7 @@ export async function runScan(
     // ─────────────────────────────────────────────────
     // Phase 4: URL Parameter Testing
     // ─────────────────────────────────────────────────
-    onProgress("Phase 4: Testing URL parameters", 62);
+    await onProgress("Phase 4: Testing URL parameters", 62);
     log(`── Phase 4: Testing URL parameters (${params.length} params) ──`);
 
     const PARAM_PROGRESS_START = 62;
@@ -1503,7 +1505,9 @@ export async function runScan(
                 }
 
                 paramIndex++;
-                onProgress(`Phase 4: Testing URL params [${paramIndex}]`, Math.min(PARAM_PROGRESS_START + (paramIndex / 400) * (PARAM_PROGRESS_END - PARAM_PROGRESS_START), PARAM_PROGRESS_END));
+                if (paramIndex % 10 === 0) {
+                    await onProgress(`Phase 4: Testing URL params [${paramIndex}]`, Math.min(PARAM_PROGRESS_START + (paramIndex / 400) * (PARAM_PROGRESS_END - PARAM_PROGRESS_START), PARAM_PROGRESS_END));
+                }
                 await sleep(config.requestDelay * 500);
             }
         }
@@ -1577,7 +1581,7 @@ export async function runScan(
     // ─────────────────────────────────────────────────
     // Phase 5: Header Injection Testing
     // ─────────────────────────────────────────────────
-    onProgress("Phase 5: Testing HTTP header injection", 88);
+    await onProgress("Phase 5: Testing HTTP header injection", 88);
     log(`── Phase 5: Header Injection Testing ──`);
 
     if (config.testAllHeaders) {
@@ -1647,7 +1651,7 @@ export async function runScan(
     // ─────────────────────────────────────────────────
     // Phase 6: Deduplication & Final Report
     // ─────────────────────────────────────────────────
-    onProgress("Phase 6: Deduplicating and scoring findings", 95);
+    await onProgress("Phase 6: Deduplicating and scoring findings", 95);
     log(`── Phase 6: Deduplication ──`);
     log(`  Raw findings before dedup: ${allFindings.length}`);
 
@@ -1663,7 +1667,7 @@ export async function runScan(
     const lowCount = findings.filter(f => f.severity === "Low").length;
     log(`  Critical: ${critCount} | High: ${highCount} | Medium: ${medCount} | Low: ${lowCount}`);
 
-    onProgress("Complete", 100);
+    await onProgress("Complete", 100);
 
     return {
         findings,
