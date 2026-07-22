@@ -25,16 +25,25 @@ import {
 } from "./sqli-engine";
 
 export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
+    console.log(`[PREDATOR-TRACE-WORKER] Entering executeChunk for ${scanId}`);
     const scan = await getScan(scanId);
-    if (!scan || scan.status !== "running") {
+    if (!scan) {
+        console.error(`[PREDATOR-TRACE-WORKER] Scan ${scanId} NOT FOUND in Firestore!`);
+        return { done: true };
+    }
+    if (scan.status !== "running") {
+        console.log(`[PREDATOR-TRACE-WORKER] Scan ${scanId} status is '${scan.status}' (not running). Halting.`);
         return { done: true };
     }
 
     const state = await getScanState(scanId);
     if (!state) {
+        console.error(`[PREDATOR-TRACE-WORKER] ScanChunkState for ${scanId} NOT FOUND in Firestore!`);
         await updateScan(scanId, { status: "failed", currentPhase: "Failed", error: "Scan state lost" });
         return { done: true };
     }
+
+    console.log(`[PREDATOR-TRACE-WORKER] executeChunk loaded state for ${scanId}. Current phase: '${state.step.phase}'`);
 
     const deadline = Date.now() + 7000; // 7-second time budget per serverless invocation
     const config = state.config;

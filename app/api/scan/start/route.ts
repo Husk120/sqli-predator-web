@@ -4,6 +4,7 @@ import { ScanResult, ScanChunkState } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
     try {
+        console.log("[PREDATOR-TRACE] 1. POST /api/scan/start received");
         const body = await request.json();
         const {
             targetUrl, crawlDepth, requestDelay, timeSamples,
@@ -11,6 +12,7 @@ export async function POST(request: NextRequest) {
         } = body;
 
         if (!targetUrl) {
+            console.log("[PREDATOR-TRACE] 1a. Missing targetUrl");
             return NextResponse.json({ error: "Target URL is required" }, { status: 400 });
         }
 
@@ -18,15 +20,18 @@ export async function POST(request: NextRequest) {
         try {
             new URL(targetUrl);
         } catch {
+            console.log("[PREDATOR-TRACE] 1b. Invalid URL format:", targetUrl);
             return NextResponse.json({ error: "Invalid URL format" }, { status: 400 });
         }
 
         const parsed = new URL(targetUrl);
         if (!["http:", "https:"].includes(parsed.protocol)) {
+            console.log("[PREDATOR-TRACE] 1c. Invalid protocol:", parsed.protocol);
             return NextResponse.json({ error: "Only HTTP/HTTPS targets are supported" }, { status: 400 });
         }
 
         const id = crypto.randomUUID().slice(0, 12);
+        console.log(`[PREDATOR-TRACE] 2. Validation passed. Generated scan ID: ${id}`);
 
         const scanProfile = {
             targetUrl,
@@ -68,8 +73,10 @@ export async function POST(request: NextRequest) {
         };
 
         // Persist initial state to Firestore
+        console.log(`[PREDATOR-TRACE] 3. Writing scan and chunkState to Firestore for ${id}...`);
         await createScan(scanResult);
         await saveScanState(id, chunkState);
+        console.log(`[PREDATOR-TRACE] 4. Firestore docs created successfully for ${id}`);
 
         // Fire initial chunk continuation inside after() so Vercel keeps the runtime alive to dispatch the request
         const vercelUrl = process.env.VERCEL_URL || process.env.NEXT_PUBLIC_VERCEL_URL;
@@ -77,19 +84,24 @@ export async function POST(request: NextRequest) {
         const protocol = request.headers.get("x-forwarded-proto") || (vercelUrl ? "https" : "http");
         const continueUrl = `${protocol}://${host}/api/scan/continue/${id}`;
 
+        console.log(`[PREDATOR-TRACE] 5. Scheduling initial after() continuation fetch to: ${continueUrl}`);
+
         after(async () => {
+            console.log(`[PREDATOR-TRACE] 6. [after()] Dispatching POST to ${continueUrl}...`);
             try {
-                await fetch(continueUrl, {
+                const res = await fetch(continueUrl, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                 });
-            } catch (err) {
-                console.error(`[PREDATOR] Failed to kick off initial chunk for ${id}:`, err);
+                console.log(`[PREDATOR-TRACE] 7. [after()] Dispatch response status: ${res.status}`);
+            } catch (err: any) {
+                console.error(`[PREDATOR-TRACE] 7a. [after()] Dispatch failed for ${id}:`, err?.message || err);
             }
         });
 
         return NextResponse.json({ id, status: "running" });
     } catch (err: any) {
+        console.error("[PREDATOR-TRACE] ERROR in POST /api/scan/start:", err?.message || err);
         return NextResponse.json({ error: err.message || "Failed to start scan" }, { status: 500 });
     }
 }
