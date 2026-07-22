@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { executeChunk } from "@/lib/scan-worker";
 import { getScan } from "@/lib/store";
 
@@ -14,16 +14,19 @@ export async function POST(
             // Check scan status before continuation
             const scan = await getScan(id);
             if (scan && scan.status === "running") {
-                // Self-continuation fetch (fire and forget)
                 const host = request.headers.get("host") || "localhost:3000";
                 const protocol = request.headers.get("x-forwarded-proto") || "http";
                 const continueUrl = `${protocol}://${host}/api/scan/continue/${id}`;
 
-                fetch(continueUrl, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                }).catch((err) => {
-                    console.error(`[PREDATOR] Failed to fire continuation chunk for ${id}:`, err);
+                after(async () => {
+                    try {
+                        await fetch(continueUrl, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                        });
+                    } catch (err) {
+                        console.error(`[PREDATOR] Failed to fire continuation chunk for ${id}:`, err);
+                    }
                 });
             }
         }

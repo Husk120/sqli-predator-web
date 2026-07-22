@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { createScan, saveScanState } from "@/lib/store";
 import { ScanResult, ScanChunkState } from "@/lib/types";
 
@@ -71,16 +71,20 @@ export async function POST(request: NextRequest) {
         await createScan(scanResult);
         await saveScanState(id, chunkState);
 
-        // Fire initial chunk continuation (unawaited)
+        // Fire initial chunk continuation inside after() so Vercel keeps the runtime alive to dispatch the request
         const host = request.headers.get("host") || "localhost:3000";
         const protocol = request.headers.get("x-forwarded-proto") || "http";
         const continueUrl = `${protocol}://${host}/api/scan/continue/${id}`;
 
-        fetch(continueUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-        }).catch((err) => {
-            console.error(`[PREDATOR] Failed to kick off initial chunk for ${id}:`, err);
+        after(async () => {
+            try {
+                await fetch(continueUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                });
+            } catch (err) {
+                console.error(`[PREDATOR] Failed to kick off initial chunk for ${id}:`, err);
+            }
         });
 
         return NextResponse.json({ id, status: "running" });
