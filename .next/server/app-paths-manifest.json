@@ -1,0 +1,8 @@
+{
+  "/api/scans/route": "app/api/scans/route.js",
+  "/api/scan/status/[id]/route": "app/api/scan/status/[id]/route.js",
+  "/api/report/[id]/route": "app/api/report/[id]/route.js",
+  "/page": "app/page.js",
+  "/scans/[id]/page": "app/scans/[id]/page.js",
+  "/scans/page": "app/scans/page.js"
+}

