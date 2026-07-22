@@ -72,8 +72,9 @@ export async function POST(request: NextRequest) {
         await saveScanState(id, chunkState);
 
         // Fire initial chunk continuation inside after() so Vercel keeps the runtime alive to dispatch the request
-        const host = request.headers.get("host") || "localhost:3000";
-        const protocol = request.headers.get("x-forwarded-proto") || "http";
+        const vercelUrl = process.env.VERCEL_URL || process.env.NEXT_PUBLIC_VERCEL_URL;
+        const host = vercelUrl ? vercelUrl : (request.headers.get("host") || "localhost:3000");
+        const protocol = request.headers.get("x-forwarded-proto") || (vercelUrl ? "https" : "http");
         const continueUrl = `${protocol}://${host}/api/scan/continue/${id}`;
 
         after(async () => {

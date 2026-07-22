@@ -14,8 +14,9 @@ export async function POST(
             // Check scan status before continuation
             const scan = await getScan(id);
             if (scan && scan.status === "running") {
-                const host = request.headers.get("host") || "localhost:3000";
-                const protocol = request.headers.get("x-forwarded-proto") || "http";
+                const vercelUrl = process.env.VERCEL_URL || process.env.NEXT_PUBLIC_VERCEL_URL;
+                const host = vercelUrl ? vercelUrl : (request.headers.get("host") || "localhost:3000");
+                const protocol = request.headers.get("x-forwarded-proto") || (vercelUrl ? "https" : "http");
                 const continueUrl = `${protocol}://${host}/api/scan/continue/${id}`;
 
                 after(async () => {
