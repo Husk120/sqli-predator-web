@@ -17,19 +17,32 @@ export async function POST(
             const scan = await getScan(id);
             console.log(`[PREDATOR-TRACE] 10. getScan(${id}) status: ${scan?.status}`);
             if (scan && scan.status === "running") {
-                const vercelUrl = process.env.VERCEL_URL || process.env.NEXT_PUBLIC_VERCEL_URL;
-                const host = vercelUrl ? vercelUrl : (request.headers.get("host") || "localhost:3000");
-                const protocol = request.headers.get("x-forwarded-proto") || (vercelUrl ? "https" : "http");
-                const continueUrl = `${protocol}://${host}/api/scan/continue/${id}`;
+                const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
+                let continueUrl: string;
+
+                if (appUrl) {
+                    const cleanAppUrl = appUrl.startsWith("http") ? appUrl : `https://${appUrl}`;
+                    continueUrl = `${cleanAppUrl.replace(/\/$/, "")}/api/scan/continue/${id}`;
+                } else {
+                    const host = request.headers.get("host") || process.env.VERCEL_URL || "localhost:3000";
+                    const protocol = request.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+                    continueUrl = `${protocol}://${host}/api/scan/continue/${id}`;
+                }
 
                 console.log(`[PREDATOR-TRACE] 11. Scheduling next continuation fetch to: ${continueUrl}`);
 
                 after(async () => {
                     console.log(`[PREDATOR-TRACE] 12. [after()] Dispatching next POST to ${continueUrl}...`);
                     try {
+                        const headers: Record<string, string> = { "Content-Type": "application/json" };
+                        const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+                        if (bypassSecret) {
+                            headers["x-vercel-protection-bypass"] = bypassSecret;
+                        }
+
                         const res = await fetch(continueUrl, {
                             method: "POST",
-                            headers: { "Content-Type": "application/json" },
+                            headers,
                         });
                         console.log(`[PREDATOR-TRACE] 13. [after()] Dispatch response status: ${res.status}`);
                     } catch (err: any) {

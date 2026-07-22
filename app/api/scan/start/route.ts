@@ -79,19 +79,33 @@ export async function POST(request: NextRequest) {
         console.log(`[PREDATOR-TRACE] 4. Firestore docs created successfully for ${id}`);
 
         // Fire initial chunk continuation inside after() so Vercel keeps the runtime alive to dispatch the request
-        const vercelUrl = process.env.VERCEL_URL || process.env.NEXT_PUBLIC_VERCEL_URL;
-        const host = vercelUrl ? vercelUrl : (request.headers.get("host") || "localhost:3000");
-        const protocol = request.headers.get("x-forwarded-proto") || (vercelUrl ? "https" : "http");
-        const continueUrl = `${protocol}://${host}/api/scan/continue/${id}`;
+        // Prioritize explicitly configured APP_URL, then request Host (production/preview alias), then VERCEL_URL fallback
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
+        let continueUrl: string;
+
+        if (appUrl) {
+            const cleanAppUrl = appUrl.startsWith("http") ? appUrl : `https://${appUrl}`;
+            continueUrl = `${cleanAppUrl.replace(/\/$/, "")}/api/scan/continue/${id}`;
+        } else {
+            const host = request.headers.get("host") || process.env.VERCEL_URL || "localhost:3000";
+            const protocol = request.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+            continueUrl = `${protocol}://${host}/api/scan/continue/${id}`;
+        }
 
         console.log(`[PREDATOR-TRACE] 5. Scheduling initial after() continuation fetch to: ${continueUrl}`);
 
         after(async () => {
             console.log(`[PREDATOR-TRACE] 6. [after()] Dispatching POST to ${continueUrl}...`);
             try {
+                const headers: Record<string, string> = { "Content-Type": "application/json" };
+                const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+                if (bypassSecret) {
+                    headers["x-vercel-protection-bypass"] = bypassSecret;
+                }
+
                 const res = await fetch(continueUrl, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers,
                 });
                 console.log(`[PREDATOR-TRACE] 7. [after()] Dispatch response status: ${res.status}`);
             } catch (err: any) {
