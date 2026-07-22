@@ -218,8 +218,21 @@ export default function ScanDetailPage() {
     const [loading, setLoading] = useState(true);
     const [pollError, setPollError] = useState<string | null>(null);
     const [isStalled, setIsStalled] = useState(false);
+    const [stopping, setStopping] = useState(false);
     const retryCountRef = useRef(0);
     const lastProgressRef = useRef<{ progress: number; time: number } | null>(null);
+
+    const handleStopScan = async () => {
+        if (!id || stopping) return;
+        setStopping(true);
+        try {
+            const resp = await fetch(`/api/scan/stop/${id}`, { method: "POST" });
+            if (resp.ok) {
+                setScan((prev) => prev ? { ...prev, status: "stopped", currentPhase: "Stopped by user" } : null);
+            }
+        } catch { }
+        setStopping(false);
+    };
 
     useEffect(() => {
         let isMounted = true;
@@ -295,7 +308,7 @@ export default function ScanDetailPage() {
                     }
                 }
 
-                if (data.status === "completed" || data.status === "failed") {
+                if (data.status === "completed" || data.status === "failed" || data.status === "stopped") {
                     if (data.status === "completed") {
                         const reportResp = await fetch(`/api/report/${id}`);
                         if (reportResp.ok) {
@@ -305,7 +318,7 @@ export default function ScanDetailPage() {
                             if (isMounted) setScan(data as any);
                         }
                     } else {
-                        // Failed scan — show the error from the backend
+                        // Failed or stopped scan — show state from backend
                         if (isMounted) setScan(data as any);
                     }
                     if (isMounted) setLoading(false);
@@ -404,21 +417,35 @@ export default function ScanDetailPage() {
 
                 <div className="flex items-center gap-3">
                     {scan.status === "running" && (
-                        <div className="flex items-center gap-2 text-accent-blue text-sm pulse-active px-3 py-1.5 rounded-lg border border-accent-blue/30">
-                            <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                            </svg>
-                            Scanning...
-                        </div>
+                        <>
+                            <div className="flex items-center gap-2 text-accent-blue text-sm pulse-active px-3 py-1.5 rounded-lg border border-accent-blue/30">
+                                <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                </svg>
+                                Scanning...
+                            </div>
+                            <button
+                                onClick={handleStopScan}
+                                disabled={stopping}
+                                className="text-xs bg-accent-red/10 text-accent-red hover:bg-accent-red/20 border border-accent-red/30 px-3 py-1.5 rounded-lg transition-colors font-medium flex items-center gap-1.5"
+                            >
+                                ⏹️ {stopping ? "Stopping..." : "Stop Scan"}
+                            </button>
+                        </>
                     )}
                     {scan.status === "completed" && (
-                        <span className="text-xs bg-accent-green/10 text-accent-green px-3 py-1.5 rounded-lg">
+                        <span className="text-xs bg-accent-green/10 text-accent-green px-3 py-1.5 rounded-lg font-medium">
                             ✅ Complete ({scan.duration?.toFixed(1)}s)
                         </span>
                     )}
+                    {scan.status === "stopped" && (
+                        <span className="text-xs bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 px-3 py-1.5 rounded-lg font-medium">
+                            🛑 Stopped
+                        </span>
+                    )}
                     {scan.status === "failed" && (
-                        <span className="text-xs bg-accent-red/10 text-accent-red px-3 py-1.5 rounded-lg">❌ Failed</span>
+                        <span className="text-xs bg-accent-red/10 text-accent-red px-3 py-1.5 rounded-lg font-medium">❌ Failed</span>
                     )}
                 </div>
             </div>

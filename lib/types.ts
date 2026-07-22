@@ -1,4 +1,4 @@
-export type ScanStatus = "idle" | "running" | "completed" | "failed";
+export type ScanStatus = "idle" | "running" | "completed" | "failed" | "stopped";
 
 export type ConfidenceLevel = "High" | "Medium" | "Low" | "Tentative";
 
@@ -148,3 +148,56 @@ export const CONFIDENCE_COLORS: Record<ConfidenceLevel, string> = {
     Low: "#fd7e14",
     Tentative: "#6c757d",
 };
+
+export type ChunkPhase =
+    | "enumerate"
+    | "baseline"
+    | "test_forms"
+    | "test_params"
+    | "test_headers"
+    | "finalize";
+
+export interface ChunkStep {
+    phase: ChunkPhase;
+    formIdx?: number;
+    inputIdx?: number;
+    paramIdx?: number;
+    payloadIdx?: number;
+    booleanIdx?: number;
+    headerIdx?: number;
+    headerPayloadIdx?: number;
+}
+
+export interface BaselineData {
+    status: number;
+    length: number;
+    hash: string;
+    mean: number;
+    stddev: number;
+}
+
+export interface ScanChunkState {
+    scanId: string;
+    config: ScanProfile;
+    step: ChunkStep;
+    forms: Array<{
+        action: string;
+        method: string;
+        inputs: Array<{ name: string; type: string; value: string }>;
+        priority: "high" | "medium" | "low";
+    }>;
+    params: Array<{
+        baseUrl: string;
+        name: string;
+        value: string;
+        originalUrl?: string;
+        allParams?: Record<string, string>;
+        priority: "high" | "medium" | "low";
+    }>;
+    techStack: TechStackInfo;
+    discoveredPaths: string[];
+    baselines: Record<string, BaselineData>;
+    findings: SQLiFinding[];
+    scanLog: string[];
+}
+

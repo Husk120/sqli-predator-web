@@ -1,4 +1,4 @@
-import { ScanResult } from "./types";
+import { ScanResult, ScanChunkState } from "./types";
 import { getFirestore, Firestore } from "firebase-admin/firestore";
 import { getApps, initializeApp, cert } from "firebase-admin/app";
 
@@ -19,12 +19,27 @@ function getFirestoreDb(): Firestore | null {
 
     // Initialize only once — guard against duplicate initialization in serverless
     if (getApps().length === 0) {
+        console.log("[FIREBASE DEBUG] Raw privateKey length:", privateKey.length);
+        console.log("[FIREBASE DEBUG] Raw start (first 30):", JSON.stringify(privateKey.slice(0, 30)));
+        console.log("[FIREBASE DEBUG] Raw end (last 30):", JSON.stringify(privateKey.slice(-30)));
+
+        // Strip surrounding quotes if present (e.g. from env file parsing)
+        let cleanedKey = privateKey.trim();
+        if ((cleanedKey.startsWith('"') && cleanedKey.endsWith('"')) || 
+            (cleanedKey.startsWith("'") && cleanedKey.endsWith("'"))) {
+            cleanedKey = cleanedKey.slice(1, -1);
+        }
+
+        cleanedKey = cleanedKey.replace(/\\n/g, "\n");
+
+        console.log("[FIREBASE DEBUG] Cleaned start (first 30):", JSON.stringify(cleanedKey.slice(0, 30)));
+        console.log("[FIREBASE DEBUG] Cleaned end (last 30):", JSON.stringify(cleanedKey.slice(-30)));
+
         initializeApp({
             credential: cert({
                 projectId,
                 clientEmail,
-                // Vercel stores the key with escaped \\n — convert to real newlines
-                privateKey: privateKey.replace(/\\n/g, "\n"),
+                privateKey: cleanedKey,
             }),
         });
     }
@@ -108,8 +123,62 @@ export async function deleteScan(id: string): Promise<void> {
     const db = getFirestoreDb();
     if (!db) {
         localScans.delete(id);
+        localScanStates.delete(id);
         return;
     }
 
     await db.collection(COLLECTION).doc(id).delete();
+    await db.collection(STATES_COLLECTION).doc(id).delete();
+}
+
+// ─── Scan Chunk State Storage ───
+
+const STATES_COLLECTION = "scan_states";
+
+declare global {
+    var __scanStatesStore: Map<string, ScanChunkState> | undefined;
+}
+
+const localScanStates = globalThis.__scanStatesStore || new Map<string, ScanChunkState>();
+globalThis.__scanStatesStore = localScanStates;
+
+export async function saveScanState(id: string, state: ScanChunkState): Promise<void> {
+    const db = getFirestoreDb();
+    if (!db) {
+        localScanStates.set(id, state);
+        return;
+    }
+
+    // Keep scanLog capped at last 200 entries and truncate response snippets to ensure doc fits in 1MB
+    const cleanedState: ScanChunkState = {
+        ...state,
+        scanLog: state.scanLog.slice(-200),
+        findings: state.findings.map(f => ({
+            ...f,
+            rawResponseSnippet: (f.rawResponseSnippet || "").slice(0, 200)
+        }))
+    };
+
+    await db.collection(STATES_COLLECTION).doc(id).set(JSON.parse(JSON.stringify(cleanedState)));
+}
+
+export async function getScanState(id: string): Promise<ScanChunkState | undefined> {
+    const db = getFirestoreDb();
+    if (!db) {
+        return localScanStates.get(id);
+    }
+
+    const doc = await db.collection(STATES_COLLECTION).doc(id).get();
+    if (!doc.exists) return undefined;
+    return doc.data() as ScanChunkState;
+}
+
+export async function deleteScanState(id: string): Promise<void> {
+    const db = getFirestoreDb();
+    if (!db) {
+        localScanStates.delete(id);
+        return;
+    }
+
+    await db.collection(STATES_COLLECTION).doc(id).delete();
 }

@@ -15,12 +15,12 @@ export enum BypassTechnique {
 
 // ─── Payload Types ───
 
-type PayloadCategory =
+export type PayloadCategory =
     | "syntax_probe" | "error_based" | "boolean_based_true" | "boolean_based_false"
     | "time_based" | "union_probe" | "stacked_query" | "oob_dns" | "oob_http"
     | "second_order_marker" | "header_injection";
 
-interface Payload {
+export interface Payload {
     value: string;
     category: PayloadCategory;
     description: string;
@@ -34,13 +34,13 @@ interface Payload {
 
 // ─── Error Signatures (tightened to reduce false positives) ───
 
-interface ErrorSignature {
+export interface ErrorSignature {
     pattern: string;
     weight: number;  // 1=weak, 2=moderate, 3=strong
     dbType: string;
 }
 
-const SQL_ERROR_SIGNATURES: ErrorSignature[] = [
+export const SQL_ERROR_SIGNATURES: ErrorSignature[] = [
     // MySQL — strong, specific
     { pattern: "you have an error in your sql syntax", weight: 3, dbType: "mysql" },
     { pattern: "mysql_fetch_array()", weight: 3, dbType: "mysql" },
@@ -120,7 +120,7 @@ const SQL_ERROR_SIGNATURES: ErrorSignature[] = [
     { pattern: "db2 sql error:", weight: 3, dbType: "db2" },
 ];
 
-function checkErrorSignatures(body: string): {
+export function checkErrorSignatures(body: string): {
     found: boolean;
     signatures: string[];
     dbHint: string;
@@ -157,7 +157,7 @@ function checkErrorSignatures(body: string): {
 
 // ─── Payload Registry ───
 
-const BASE_PAYLOADS: Payload[] = [
+export const BASE_PAYLOADS: Payload[] = [
     // ── Syntax probes (detect basic injection points)
     { value: "'", category: "syntax_probe", description: "Single quote", dbTypes: ["generic"], requiresOobDomain: false, baseComplexity: 1 },
     { value: "\"", category: "syntax_probe", description: "Double quote", dbTypes: ["generic"], requiresOobDomain: false, baseComplexity: 1 },
@@ -224,7 +224,7 @@ const BASE_PAYLOADS: Payload[] = [
 
 // ─── OOB Payload Generator ───
 
-function buildOobPayloads(oobDomain: string): Payload[] {
+export function buildOobPayloads(oobDomain: string): Payload[] {
     if (!oobDomain) return [];
     const d = oobDomain.replace(/^https?:\/\//, "").trim();
     return [
@@ -245,7 +245,7 @@ function randomHex(n: number): string {
 
 // ─── Header Injection Payloads ───
 
-const HEADER_INJECTION_PAYLOADS: Payload[] = [
+export const HEADER_INJECTION_PAYLOADS: Payload[] = [
     { value: "' OR SLEEP(5)-- -", category: "header_injection", description: "Header time-based (MySQL)", dbTypes: ["mysql"], requiresOobDomain: false, baseComplexity: 1 },
     { value: "'; WAITFOR DELAY '0:0:5'-- -", category: "header_injection", description: "Header time-based (MSSQL)", dbTypes: ["mssql"], requiresOobDomain: false, baseComplexity: 1 },
     { value: "' OR pg_sleep(5)-- -", category: "header_injection", description: "Header time-based (PostgreSQL)", dbTypes: ["postgresql"], requiresOobDomain: false, baseComplexity: 1 },
@@ -254,7 +254,7 @@ const HEADER_INJECTION_PAYLOADS: Payload[] = [
     { value: "'", category: "header_injection", description: "Header syntax probe", dbTypes: ["generic"], requiresOobDomain: false, baseComplexity: 1 },
 ];
 
-const INJECTABLE_HEADERS = [
+export const INJECTABLE_HEADERS = [
     "X-Forwarded-For",
     "User-Agent",
     "Referer",
@@ -266,7 +266,7 @@ const INJECTABLE_HEADERS = [
 
 // ─── Polymorphic WAF Bypass Engine ───
 
-function generatePolymorphicVariants(p: Payload, limitVariants: boolean = false): Array<{ payload: Payload; bypass: BypassTechnique }> {
+export function generatePolymorphicVariants(p: Payload, limitVariants: boolean = false): Array<{ payload: Payload; bypass: BypassTechnique }> {
     const variants: Array<{ payload: Payload; bypass: BypassTechnique }> = [
         { payload: { ...p, bypassTechnique: BypassTechnique.NONE }, bypass: BypassTechnique.NONE },
     ];
@@ -309,7 +309,7 @@ function generatePolymorphicVariants(p: Payload, limitVariants: boolean = false)
  * - Scope: Unchanged (S:U)
  * - Impact varies by method capability
  */
-const CVSS_BASE_SCORES: Record<string, number> = {
+export const CVSS_BASE_SCORES: Record<string, number> = {
     OOB_DNS: 9.8,        // Full data exfil capability; Critical
     OOB_HTTP: 9.8,       // Full data exfil capability; Critical
     UNION_PROBE: 9.1,    // Confirmed data extraction; Critical
@@ -321,7 +321,7 @@ const CVSS_BASE_SCORES: Record<string, number> = {
     STATUS_CODE_ANOMALY: 3.0,     // Very weak signal; Low
 };
 
-function calculateSeverity(cvssScore: number): string {
+export function calculateSeverity(cvssScore: number): string {
     if (cvssScore >= 9.0) return "Critical";
     if (cvssScore >= 7.0) return "High";
     if (cvssScore >= 4.0) return "Medium";
@@ -329,14 +329,14 @@ function calculateSeverity(cvssScore: number): string {
     return "Info";
 }
 
-function getConfidenceLevel(confidence: number): ConfidenceLevel {
+export function getConfidenceLevel(confidence: number): ConfidenceLevel {
     if (confidence >= 0.75) return "High";
     if (confidence >= 0.50) return "Medium";
     if (confidence >= 0.25) return "Low";
     return "Tentative";
 }
 
-function scoreConfidence(opts: {
+export function scoreConfidence(opts: {
     hasErrors: boolean;
     errorWeight: number;
     timeDelay: boolean;
@@ -392,7 +392,7 @@ function scoreConfidence(opts: {
 
 // ─── Classification & Reporting ───
 
-const CWE_MAP: Record<string, string> = {
+export const CWE_MAP: Record<string, string> = {
     ERROR_BASED: "CWE-89",
     BOOLEAN_BASED: "CWE-89",
     TIME_BASED_STATISTICAL: "CWE-89",
@@ -404,16 +404,16 @@ const CWE_MAP: Record<string, string> = {
     CONTENT_DIFF: "CWE-89",
 };
 
-const OWASP_CATEGORY = "A03:2021 – Injection";
+export const OWASP_CATEGORY = "A03:2021 – Injection";
 
-const REFERENCES = [
+export const REFERENCES = [
     "https://owasp.org/www-community/attacks/SQL_Injection",
     "https://cwe.mitre.org/data/definitions/89.html",
     "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html",
     "https://portswigger.net/web-security/sql-injection",
 ];
 
-function generateExplanation(finding: Partial<SQLiFinding>): string {
+export function generateExplanation(finding: Partial<SQLiFinding>): string {
     const det = finding.detectionMethod || "";
     const payload = (finding.payloadUsed || "").slice(0, 100);
     const param = finding.parameter || "parameter";
@@ -474,7 +474,7 @@ function generateExplanation(finding: Partial<SQLiFinding>): string {
         `using payload '${payload}'. Manual verification recommended.`;
 }
 
-function generateRemediation(detectionMethod: string, dbHint: string): string[] {
+export function generateRemediation(detectionMethod: string, dbHint: string): string[] {
     const base = [
         "1. PRIMARY FIX — Parameterized Queries/Prepared Statements: Replace all dynamic SQL concatenation with parameterized queries or ORMs that handle escaping (e.g., PDO/MySQLi in PHP, Hibernate in Java, SQLAlchemy in Python).",
         "2. INPUT VALIDATION: Implement strict server-side allowlist validation. For numeric IDs, verify input is an integer before using it.",
@@ -505,7 +505,7 @@ function generateRemediation(detectionMethod: string, dbHint: string): string[] 
     return base;
 }
 
-function buildPocRequest(method: string, url: string, param: string, payload: string, headers: Record<string, string>, isForm: boolean, formData?: Record<string, string>): string {
+export function buildPocRequest(method: string, url: string, param: string, payload: string, headers: Record<string, string>, isForm: boolean, formData?: Record<string, string>): string {
     const parsedUrl = new URL(url);
     let poc = "";
 
@@ -534,7 +534,7 @@ function buildPocRequest(method: string, url: string, param: string, payload: st
 
 // ─── Deduplication ───
 
-function deduplicateFindings(findings: SQLiFinding[]): SQLiFinding[] {
+export function deduplicateFindings(findings: SQLiFinding[]): SQLiFinding[] {
     // Group by (url, parameter, detectionMethod) — keep highest confidence
     const methodGroups = new Map<string, SQLiFinding>();
     for (const f of findings) {
@@ -576,7 +576,7 @@ function deduplicateFindings(findings: SQLiFinding[]): SQLiFinding[] {
 
 // ─── Headers Helper ───
 
-function buildHeaders(config: ScanProfile): Record<string, string> {
+export function buildHeaders(config: ScanProfile): Record<string, string> {
     const headers: Record<string, string> = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -592,7 +592,7 @@ function buildHeaders(config: ScanProfile): Record<string, string> {
 
 // ─── Form Parser ───
 
-interface ParsedForm {
+export interface ParsedForm {
     action: string;
     method: string;
     inputs: Array<{ name: string; type: string; value: string }>;
@@ -730,7 +730,7 @@ function scoreUrlPriority(url: string): "high" | "medium" | "low" {
 
 // ─── Enhanced Crawler with Enumeration ───
 
-interface CrawlParam {
+export interface CrawlParam {
     baseUrl: string;
     name: string;
     value: string;
@@ -753,7 +753,7 @@ const COMMON_PATHS = [
     "/index.php", "/home.php",
 ];
 
-async function crawlTarget(
+export async function crawlTarget(
     target: string,
     config: ScanProfile,
     authHeaders: Record<string, string>,
@@ -989,7 +989,7 @@ async function crawlTarget(
 
 // ─── Statistical Time-Based Detection ───
 
-async function measureBaslineTiming(
+export async function measureBaslineTiming(
     fetchFn: () => Promise<{ elapsed: number; status: number }>,
     samples: number,
     log: (msg: string) => void
@@ -1010,7 +1010,7 @@ async function measureBaslineTiming(
     return { mean, stddev };
 }
 
-function computeZScore(measured: number, mean: number, stddev: number): number {
+export function computeZScore(measured: number, mean: number, stddev: number): number {
     if (stddev === 0) return measured > mean + 2 ? 10 : 0;
     return (measured - mean) / stddev;
 }
@@ -1683,7 +1683,7 @@ export async function runScan(
 
 // ─── Utility Functions ───
 
-function simpleHash(str: string): string {
+export function simpleHash(str: string): string {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
         hash = ((hash << 5) - hash) + str.charCodeAt(i);
@@ -1692,6 +1692,6 @@ function simpleHash(str: string): string {
     return hash.toString(16);
 }
 
-function sleep(ms: number): Promise<void> {
+export function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
