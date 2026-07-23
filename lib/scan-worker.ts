@@ -196,6 +196,7 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
             // Form baselines
             while (formIdx < state.forms.length && Date.now() < deadline) {
                 const form = state.forms[formIdx];
+                log(`[BASELINE] Processing form ${formIdx + 1}/${state.forms.length}: ${form.action}`);
                 const key = `form:${form.action}:${form.method}`;
                 if (!state.baselines[key]) {
                     try {
@@ -223,6 +224,8 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                         state.baselines[key] = { status: resp.status, length: text.length, hash: simpleHash(text), mean, stddev };
                     } catch (e) {
                         // ignore baseline errors
+                        const msg = e instanceof Error ? e.message : String(e);
+                        log(`[BASELINE] Error processing form ${formIdx}: ${msg}`);
                     }
                 }
                 formIdx++;
@@ -231,6 +234,7 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
             // Param baselines
             while (paramIdx < state.params.length && Date.now() < deadline) {
                 const param = state.params[paramIdx];
+                log(`[BASELINE] Processing param ${paramIdx + 1}/${state.params.length}: ${param.baseUrl}?${param.name}=${param.value}`);
                 const key = `param:${param.baseUrl}:${param.name}`;
                 if (!state.baselines[key]) {
                     try {
@@ -246,10 +250,14 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                         state.baselines[key] = { status: resp.status, length: text.length, hash: simpleHash(text), mean, stddev };
                     } catch (e) {
                         // ignore baseline errors
+                        const msg = e instanceof Error ? e.message : String(e);
+                        log(`[BASELINE] Error processing param ${paramIdx}: ${msg}`);
                     }
                 }
                 paramIdx++;
             }
+
+            log(`[BASELINE] Completed form baseline up to index ${formIdx}/${state.forms.length}, param baseline up to index ${paramIdx}/${state.params.length}`);
 
             state.step = { formIdx, paramIdx, phase: (formIdx >= state.forms.length && paramIdx >= state.params.length) ? "test_forms" : "baseline" };
             if (state.step.phase === "test_forms") {
