@@ -226,7 +226,7 @@ export default function ScanDetailPage() {
         if (!id || stopping) return;
         setStopping(true);
         try {
-            const resp = await fetch(`/api/scan/stop/${id}`, { method: "POST" });
+            const resp = await fetch(`https://sqli-predator-api.onrender.com/api/scan/${id}/stop`, { method: "POST" });
             if (resp.ok) {
                 setScan((prev) => prev ? { ...prev, status: "stopped", currentPhase: "Stopped by user" } : null);
             }
@@ -261,9 +261,9 @@ export default function ScanDetailPage() {
             if (!isMounted) return;
 
             try {
-                const resp = await fetch(`/api/scan/status/${id}`);
+                const resp = await fetch(`https://sqli-predator-api.onrender.com/api/scan/${id}`);
                 if (!resp.ok) {
-                    // On Vercel, the scan may take a moment to appear in Redis after creation.
+                    // On Render, the scan may take a moment to appear in the database after creation.
                     // Use exponential backoff up to 15 retries (covers ~60s of cold-start delay).
                     if (retryCountRef.current < 15) {
                         retryCountRef.current++;
@@ -310,7 +310,7 @@ export default function ScanDetailPage() {
 
                 if (data.status === "completed" || data.status === "failed" || data.status === "stopped") {
                     if (data.status === "completed") {
-                        const reportResp = await fetch(`/api/report/${id}`);
+                        const reportResp = await fetch(`https://sqli-predator-api.onrender.com/api/scan/${id}/report`);
                         if (reportResp.ok) {
                             const report: ScanResult = await reportResp.json();
                             if (isMounted) { setScan(report); saveToLocal(report); }

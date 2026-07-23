@@ -16,7 +16,7 @@ export default function HomePage() {
         setError(null);
 
         try {
-            const resp = await fetch("/api/scan/start", {
+            const resp = await fetch("https://sqli-predator-api.onrender.com/api/scan", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(profile),
