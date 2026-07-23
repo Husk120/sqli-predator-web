@@ -13,10 +13,21 @@ export async function POST(
         console.log(`[PREDATOR-TRACE] 9. executeChunk(${id}) returned: done=${result.done}`);
 
         if (!result.done) {
-            // Check scan status before continuation
-            const scan = await getScan(id);
-            console.log(`[PREDATOR-TRACE] 10. getScan(${id}) status: ${scan?.status}`);
-            if (scan && scan.status === "running") {
+            // Check if scan was stopped via /api/scan/stop/[id]
+            let shouldContinue = true;
+            try {
+                const scan = await getScan(id);
+                if (scan && scan.status === "stopped") {
+                    shouldContinue = false;
+                    console.log(`[PREDATOR-TRACE] Scan ${id} is stopped, halting continuation`);
+                }
+            } catch (e) {
+                // If we can't fetch the scan (e.g., Firestore temporarily unavailable),
+                // assume it's still running (not stopped) to avoid halting the scan prematurely.
+                console.warn(`[PREDATOR-TRACE] Could not fetch scan ${id} to check stop status:`, e);
+            }
+
+            if (shouldContinue) {
                 const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
                 let continueUrl: string;
 
