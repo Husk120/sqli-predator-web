@@ -200,7 +200,7 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                 if (!state.baselines[key]) {
                     try {
                         const formData: Record<string, string> = {};
-                        for (const inp of form.inputs) data[inp.name] = inp.value || "test";
+                        for (const inp of form.inputs) formData[inp.name] = inp.value || "test";
                         const { mean, stddev } = await measureBaslineTiming(async () => {
                             const start = performance.now();
                             let resp: Response;
