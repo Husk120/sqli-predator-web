@@ -16,10 +16,24 @@ export default function HomePage() {
         setError(null);
 
         try {
+            // Convert camelCase profile to snake_case for backend API
+            const scanRequest = {
+                target_url: profile.targetUrl,
+                crawl_depth: profile.crawlDepth,
+                request_delay: profile.requestDelay,
+                timeout: profile.timeout,
+                test_all_headers: profile.testAllHeaders,
+                test_second_order: profile.testSecondOrder,
+                auth_cookie: profile.authCookie,
+                auth_creds: profile.authCreds,
+                // Note: timeThreshold, timeSamples, and oobDomain from profile are not sent
+                // as they are not part of the backend's ScanRequest model
+            };
+
             const resp = await fetch("https://sqli-predator-api.onrender.com/api/scan", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(profile),
+                body: JSON.stringify(scanRequest),
             });
 
             if (!resp.ok) {
