@@ -25,7 +25,7 @@ function getFirestoreDb(): Firestore | null {
 
         // Strip surrounding quotes if present (e.g. from env file parsing)
         let cleanedKey = privateKey.trim();
-        if ((cleanedKey.startsWith('"') && cleanedKey.endsWith('"')) || 
+        if ((cleanedKey.startsWith('"') && cleanedKey.endsWith('"')) ||
             (cleanedKey.startsWith("'") && cleanedKey.endsWith("'"))) {
             cleanedKey = cleanedKey.slice(1, -1);
         }
@@ -149,14 +149,28 @@ export async function saveScanState(id: string, state: ScanChunkState): Promise<
         return;
     }
 
-    // Keep scanLog capped at last 200 entries and truncate response snippets to ensure doc fits in 1MB
+    // Keep only the last 200 log entries
+    const trimmedLog = state.scanLog.slice(-200);
+
+    // Trim findings to a reasonable size and cut large payloads
+    const trimmedFindings = state.findings.map(f => ({
+        ...f,
+        // Keep the explanation short – it can be regenerated from the finding if needed
+        aiExplanation: f.aiExplanation.slice(0, 500),
+        // Keep only a short snippet of the raw response (already done elsewhere, but be safe)
+        rawResponseSnippet: (f.rawResponseSnippet || "").slice(0, 200),
+        // Optionally, drop very large fields that are not needed for continuation
+        // e.g., we could remove pocRequest if it's huge, but we keep it trimmed.
+        pocRequest: f.pocRequest.slice(0, 500),
+    }));
+
+    // Limit the number of stored findings to the most recent 500 (adjust as needed)
+    const limitedFindings = trimmedFindings.slice(-500);
+
     const cleanedState: ScanChunkState = {
         ...state,
-        scanLog: state.scanLog.slice(-200),
-        findings: state.findings.map(f => ({
-            ...f,
-            rawResponseSnippet: (f.rawResponseSnippet || "").slice(0, 200)
-        }))
+        scanLog: trimmedLog,
+        findings: limitedFindings,
     };
 
     await db.collection(STATES_COLLECTION).doc(id).set(JSON.parse(JSON.stringify(cleanedState)));

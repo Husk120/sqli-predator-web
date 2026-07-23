@@ -132,7 +132,7 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
             aiExplanation: generateExplanation({ detectionMethod: opts.detectionMethod, payloadUsed: opts.payload.value, parameter: opts.parameter, url: opts.url, dbTypeHint: opts.dbHint }),
             remediationSteps: generateRemediation(opts.detectionMethod, opts.dbHint),
             vulnerabilityClass: "SQL Injection",
-            rawResponseSnippet: opts.rawResponseSnippet.slice(0, 200),
+            rawResponseSnippet: opts.rawResponseSnippet,
             pocRequest,
             cweId: "CWE-89",
             owaspCategory: "A03:2021 – Injection",
@@ -144,6 +144,13 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
     }
 
     try {
+        // Early deadline check
+        if (Date.now() > deadline - 1000) {
+            log("[WARN] Near deadline, skipping further work and forcing completion");
+            await updateScan(scanId, { status: "failed", currentPhase: "Deadline exceeded", error: "Ran out of time" });
+            return { done: true };
+        }
+
         // Step Router
         if (state.step.phase === "enumerate") {
             log("── Phase 1: Enumerating Attack Surface ──");
@@ -154,17 +161,30 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
             state.discoveredPaths = crawlResults.discoveredPaths;
             state.step = { phase: "baseline", formIdx: 0, paramIdx: 0 };
 
-            await saveScanState(scanId, state);
-            await updateScan(scanId, {
-                currentPhase: "Phase 1: Enumeration complete",
-                progress: 15,
-                enumeration: {
-                    formsFound: state.forms.length,
-                    paramsFound: state.params.length,
-                    pathsDiscovered: state.discoveredPaths.length,
-                    techStack: state.techStack,
-                }
-            });
+            // Save state
+            try {
+                await saveScanState(scanId, state);
+            } catch (saveErr) {
+                console.error(`[PREDATOR-TRACE-WORKER] Failed to save state after enumerate:`, saveErr);
+                // Continue anyway; we may lose some state but keep going
+            }
+
+            // Update scan progress
+            try {
+                await updateScan(scanId, {
+                    currentPhase: "Phase 1: Enumeration complete",
+                    progress: 15,
+                    enumeration: {
+                        formsFound: state.forms.length,
+                        paramsFound: state.params.length,
+                        pathsDiscovered: state.discoveredPaths.length,
+                        techStack: state.techStack,
+                    }
+                });
+            } catch (updErr) {
+                console.error(`[PREDATOR-TRACE-WORKER] Failed to update scan after enumerate:`, updErr);
+            }
+
             return { done: false };
         }
 
@@ -180,7 +200,7 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                 if (!state.baselines[key]) {
                     try {
                         const formData: Record<string, string> = {};
-                        for (const inp of form.inputs) formData[inp.name] = inp.value || "test";
+                        for (const inp of form.inputs) data[inp.name] = inp.value || "test";
                         const { mean, stddev } = await measureBaslineTiming(async () => {
                             const start = performance.now();
                             let resp: Response;
@@ -201,7 +221,9 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                         }
                         const text = await resp.text();
                         state.baselines[key] = { status: resp.status, length: text.length, hash: simpleHash(text), mean, stddev };
-                    } catch { }
+                    } catch (e) {
+                        // ignore baseline errors
+                    }
                 }
                 formIdx++;
             }
@@ -222,7 +244,9 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                         const resp = await fetch(param.originalUrl || `${param.baseUrl}?${param.name}=${encodeURIComponent(param.value)}`, { headers: authHeaders, redirect: "follow", signal: AbortSignal.timeout(10000) });
                         const text = await resp.text();
                         state.baselines[key] = { status: resp.status, length: text.length, hash: simpleHash(text), mean, stddev };
-                    } catch { }
+                    } catch (e) {
+                        // ignore baseline errors
+                    }
                 }
                 paramIdx++;
             }
@@ -232,8 +256,20 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                 state.step = { phase: "test_forms", formIdx: 0, inputIdx: 0, payloadIdx: 0, booleanIdx: 0 };
             }
 
-            await saveScanState(scanId, state);
-            await updateScan(scanId, { currentPhase: "Phase 2: Baselines established", progress: 25 });
+            // Save state
+            try {
+                await saveScanState(scanId, state);
+            } catch (saveErr) {
+                console.error(`[PREDATOR-TRACE-WORKER] Failed to save state after baseline:`, saveErr);
+            }
+
+            // Update scan progress
+            try {
+                await updateScan(scanId, { currentPhase: "Phase 2: Baselines established", progress: 25 });
+            } catch (updErr) {
+                console.error(`[PREDATOR-TRACE-WORKER] Failed to update scan after baseline:`, updErr);
+            }
+
             return { done: false };
         }
 
@@ -287,6 +323,9 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                                 else if (isTimeBased) detMethod = "TIME_BASED_STATISTICAL";
                                 else if (payload.category === "union_probe" && contentDiff > 5) detMethod = "UNION_PROBE";
                                 else if (payload.category === "stacked_query" && (isTimeBased || hasErrors)) detMethod = "STACKED_QUERY";
+                                else if (payload.category === "oob_dns") detMethod = "OOB_DNS";
+                                else if (payload.category === "oob_http") detMethod = "OOB_HTTP";
+                                else if (contentDiff > 20) detMethod = "CONTENT_DIFF";
 
                                 if (detMethod) {
                                     const confidence = scoreConfidence({
@@ -307,7 +346,9 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                                         }));
                                     }
                                 }
-                            } catch { }
+                            } catch (e) {
+                                // ignore individual payload errors
+                            }
                         }
                         payloadIdx++;
                     }
@@ -342,7 +383,9 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                                             rawResponseSnippet: tResp.text, formData
                                         }));
                                     }
-                                } catch { }
+                                } catch (e) {
+                                    // ignore boolean test errors
+                                }
                             }
                             booleanIdx++;
                         }
@@ -370,8 +413,20 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
 
             const formProgress = Math.min(28 + Math.floor((formIdx / (state.forms.length || 1)) * 32), 60);
 
-            await saveScanState(scanId, state);
-            await updateScan(scanId, { currentPhase: `Phase 3: Testing form parameters (${formIdx}/${state.forms.length})`, progress: formProgress });
+            // Save state
+            try {
+                await saveScanState(scanId, state);
+            } catch (saveErr) {
+                console.error(`[PREDATOR-TRACE-WORKER] Failed to save state after test_forms:`, saveErr);
+            }
+
+            // Update scan progress
+            try {
+                await updateScan(scanId, { currentPhase: `Phase 3: Testing form parameters (${formIdx}/${state.forms.length})`, progress: formProgress });
+            } catch (updErr) {
+                console.error(`[PREDATOR-TRACE-WORKER] Failed to update scan after test_forms:`, updErr);
+            }
+
             return { done: false };
         }
 
@@ -411,6 +466,7 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                             if (hasErrors && errorWeight >= 2) detMethod = "ERROR_BASED";
                             else if (isTimeBased) detMethod = "TIME_BASED_STATISTICAL";
                             else if (payload.category === "union_probe" && contentDiff > 5) detMethod = "UNION_PROBE";
+                            else if (contentDiff > 20) detMethod = "CONTENT_DIFF";
 
                             if (detMethod) {
                                 const confidence = scoreConfidence({
@@ -431,15 +487,19 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                                     }));
                                 }
                             }
-                        } catch { }
+                        } catch (e) {
+                            // ignore individual payload errors
+                        }
+                        payloadIdx++;
                     }
-                    payloadIdx++;
+
+                    if (payloadIdx >= nonBooleanPayloads.length) {
+                        paramIdx++;
+                        payloadIdx = 0;
+                    }
                 }
 
-                if (payloadIdx >= nonBooleanPayloads.length) {
-                    paramIdx++;
-                    payloadIdx = 0;
-                }
+                // No boolean testing for URL params in this worker (kept simple)
             }
 
             const isDone = paramIdx >= state.params.length;
@@ -449,8 +509,20 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
 
             const paramProgress = Math.min(62 + Math.floor((paramIdx / (state.params.length || 1)) * 25), 87);
 
-            await saveScanState(scanId, state);
-            await updateScan(scanId, { currentPhase: `Phase 4: Testing URL parameters (${paramIdx}/${state.params.length})`, progress: paramProgress });
+            // Save state
+            try {
+                await saveScanState(scanId, state);
+            } catch (saveErr) {
+                console.error(`[PREDATOR-TRACE-WORKER] Failed to save state after test_params:`, saveErr);
+            }
+
+            // Update scan progress
+            try {
+                await updateScan(scanId, { currentPhase: `Phase 4: Testing URL parameters (${paramIdx}/${state.params.length})`, progress: paramProgress });
+            } catch (updErr) {
+                console.error(`[PREDATOR-TRACE-WORKER] Failed to update scan after test_params:`, updErr);
+            }
+
             return { done: false };
         }
 
@@ -481,7 +553,9 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                                     testLength: text.length, baselineTime: 0, testTime: elapsed, rawResponseSnippet: text
                                 }));
                             }
-                        } catch { }
+                        } catch (e) {
+                            // ignore header test errors
+                        }
                         headerPayloadIdx++;
                     }
 
@@ -493,8 +567,21 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
             }
 
             state.step = { phase: "finalize" };
-            await saveScanState(scanId, state);
-            await updateScan(scanId, { currentPhase: "Phase 5: Header testing complete", progress: 92 });
+
+            // Save state
+            try {
+                await saveScanState(scanId, state);
+            } catch (saveErr) {
+                console.error(`[PREDATOR-TRACE-WORKER] Failed to save state after test_headers:`, saveErr);
+            }
+
+            // Update scan progress
+            try {
+                await updateScan(scanId, { currentPhase: "Phase 5: Header testing complete", progress: 92 });
+            } catch (updErr) {
+                console.error(`[PREDATOR-TRACE-WORKER] Failed to update scan after test_headers:`, updErr);
+            }
+
             return { done: false };
         }
 
@@ -504,29 +591,48 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
             const startTime = new Date(scan.timestamp).getTime();
             const duration = (Date.now() - startTime) / 1000;
 
-            await updateScan(scanId, {
-                status: "completed",
-                progress: 100,
-                currentPhase: "Complete",
-                findings: deduped,
-                scanLog: state.scanLog,
-                duration,
-                enumeration: {
-                    formsFound: state.forms.length,
-                    paramsFound: state.params.length,
-                    pathsDiscovered: state.discoveredPaths.length,
-                    techStack: state.techStack,
-                }
-            });
+            // Update scan with final results
+            try {
+                await updateScan(scanId, {
+                    status: "completed",
+                    progress: 100,
+                    currentPhase: "Complete",
+                    findings: deduped,
+                    scanLog: state.scanLog,
+                    duration,
+                    enumeration: {
+                        formsFound: state.forms.length,
+                        paramsFound: state.params.length,
+                        pathsDiscovered: state.discoveredPaths.length,
+                        techStack: state.techStack,
+                    }
+                });
+            } catch (updErr) {
+                console.error(`[PREDATOR-TRACE-WORKER] Failed to finalize scan:`, updErr);
+                // Still consider done
+            }
 
-            await deleteScanState(scanId);
+            // Clean up state
+            try {
+                await deleteScanState(scanId);
+            } catch (delErr) {
+                console.error(`[PREDATOR-TRACE-WORKER] Failed to delete scan state:`, delErr);
+            }
+
             return { done: true };
         }
     } catch (err: any) {
-        log(`[ERROR] Chunk execution error: ${err.message || err}`);
-        await updateScan(scanId, { status: "failed", currentPhase: "Failed", error: err.message || "Execution error" });
+        const msg = err?.message ?? String(err);
+        log(`[ERROR] Chunk execution error: ${msg}`);
+        console.error(`[PREDATOR-TRACE-WORKER] Unhandled error in executeChunk for ${scanId}:`, err);
+        try {
+            await updateScan(scanId, { status: "failed", currentPhase: "Failed", error: msg });
+        } catch (updErr) {
+            console.error(`[PREDATOR-TRACE-WORKER] Failed to set error on scan:`, updErr);
+        }
         return { done: true };
     }
 
+    // Fallback
     return { done: false };
 }
