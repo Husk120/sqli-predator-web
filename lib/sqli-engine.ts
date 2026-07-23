@@ -1396,7 +1396,7 @@ export async function runScan(
                                 contentDiff: diffTrueFalse,
                                 baselineLength: baseLen, testLength: trueLen,
                                 baselineTime: baseline?.mean || 0, testTime: trueResp.elapsed,
-                                rawResponseSnippet: trueResp.text.slice(0, 400), formData,
+                                rawResponseSnippet: trueResp.text.slice(0, 400), formData: formData
                             });
                             allFindings.push(finding);
                             log(`    ▸ BOOLEAN CONFIRMED: ${finding.severity} CVSS:${finding.cvssScore} — ${inputField.name} TRUE/FALSE diff=${diffTrueFalse.toFixed(1)}%`);
