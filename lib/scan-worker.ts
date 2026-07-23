@@ -369,38 +369,54 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                     if (payloadIdx >= nonBooleanPayloads.length) {
                         while (booleanIdx < booleanTruePayloads.length && Date.now() < deadline) {
                             const truePayload = booleanTruePayloads[booleanIdx];
-                            if (truePayload.booleanPair) {
-                                try {
-                                    const trueData = { ...formData, [inputField.name]: truePayload.value };
-                                    const falseData = { ...formData, [inputField.name]: truePayload.booleanPair };
-                                    const fetchF = async (d: Record<string, string>) => {
-                                        const s = performance.now();
-                                        const r = form.method === "GET"
-                                            ? await fetch(`${form.action}?${new URLSearchParams(d).toString()}`, { headers: authHeaders, signal: AbortSignal.timeout(8000) })
-                                            : await fetch(form.action, { method: "POST", headers: { ...authHeaders, "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(d), signal: AbortSignal.timeout(8000) });
-                                        return { text: await r.text(), status: r.status, elapsed: (performance.now() - s) / 1000 };
-                                    };
-                                    const tResp = await fetchF(trueData);
-                                    const fResp = await fetchF(falseData);
-                                    const baseLen = baseline?.length || 0;
-                                    const diff = baseLen > 0
-                                        ? Math.abs(tResp.text.length - fResp.text.length) / baseLen * 100
-                                        : Math.abs(tResp.text.length - fResp.text.length) / Math.max(tResp.text.length, fResp.text.length, 1) * 100;
-                                    if (diff > config.booleanThreshold) {
+                            if (!truePayload.booleanPair) {
+                                booleanIdx++;
+                                continue;
+                            }
+                            const baseLen = baseline?.length || 0;
+                            try {
+                                const trueData = { ...formData, [inputField.name]: truePayload.value };
+                                const falseData = { ...formData, [inputField.name]: truePayload.booleanPair };
+                                const fetchF = async (d: Record<string, string>) => {
+                                    const s = performance.now();
+                                    const r = form.method === "GET"
+                                        ? await fetch(`${form.action}?${new URLSearchParams(d).toString()}`, { headers: authHeaders, signal: AbortSignal.timeout(8000) })
+                                        : await fetch(form.action, { method: "POST", headers: { ...authHeaders, "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(d), signal: AbortSignal.timeout(8000) });
+                                    return { text: await r.text(), status: r.status, elapsed: (performance.now() - s) / 1000 };
+                                };
+                                const tResp = await fetchF(trueData);
+                                const fResp = await fetchF(falseData);
+                                const diff = baseLen > 0
+                                    ? Math.abs(tResp.text.length - fResp.text.length) / baseLen * 100
+                                    : Math.abs(tResp.text.length - fResp.text.length) / Math.max(tResp.text.length, fResp.text.length, 1) * 100;
+                                // Boolean confirmed check - mirroring engine logic
+                                const booleanConfirmed = diff > 5 && (
+                                    (baseline && Math.abs(tResp.text.length - baseline.length) > 10) ||
+                                    (baseline && Math.abs(fResp.text.length - baseline.length) > 10) ||
+                                    diff > 50
+                                );
+
+                                if (booleanConfirmed) {
+                                                                        const confidence = scoreConfidence({
+                                        hasErrors: false, errorWeight: 0, timeDelay: false, timingZScore: 0,
+                                        oobId: "", booleanConfirmed: true, contentDiff: diff,
+                                        testStatus: tResp.status, baselineStatus: baseline?.status || 200, signatures: [], dbHint: "unknown"
+                                    });
+                                    if (confidence >= 0.25) {
                                         state.findings.push(createFinding({
                                             url: form.action, parameter: inputField.name, method: form.method,
                                             attackSurface: "form", detectionMethod: "BOOLEAN_BASED", payload: truePayload,
-                                            bypass: BypassTechnique.NONE, dbHint: "unknown", confidence: 0.75,
+                                            bypass: BypassTechnique.NONE, dbHint: "unknown", confidence,
                                             hasSqlErrors: false, errorSignatures: [], errorWeight: 0, timeDelayDetected: false,
                                             timeDelaySeconds: 0, timingZScore: 0, timingPValue: 1, isBooleanPositive: true,
                                             oobInteractionId: "", contentDiff: diff, baselineLength: baseline?.length || 0,
                                             testLength: tResp.text.length, baselineTime: baseline?.mean || 0, testTime: tResp.elapsed,
-                                            rawResponseSnippet: tResp.text, formData
+                                            rawResponseSnippet: tResp.text.slice(0, 400), formData
                                         }));
                                     }
-                                } catch (e) {
-                                    // ignore boolean test errors
                                 }
+                            } catch (e) {
+                                // ignore boolean test errors
                             }
                             booleanIdx++;
                         }
