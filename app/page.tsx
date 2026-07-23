@@ -24,6 +24,7 @@ export default function HomePage() {
                 timeout: profile.timeout,
                 test_all_headers: profile.testAllHeaders,
                 test_second_order: profile.testSecondOrder,
+                boolean_threshold: profile.booleanThreshold,
                 auth_cookie: profile.authCookie,
                 auth_creds: profile.authCreds,
                 // Note: timeThreshold, timeSamples, and oobDomain from profile are not sent

@@ -8,6 +8,9 @@ export interface ScanProfile {
     requestDelay: number;
     timeout: number;
 
+    // Boolean-based SQLi detection settings
+    booleanThreshold: number;
+
     // Time-based SQLi detection settings
     timeThreshold: number;
     timeSamples: number;

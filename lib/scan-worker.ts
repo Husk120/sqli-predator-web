@@ -382,8 +382,11 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                                     };
                                     const tResp = await fetchF(trueData);
                                     const fResp = await fetchF(falseData);
-                                    const diff = Math.abs(tResp.text.length - fResp.text.length);
-                                    if (diff > 20) {
+                                    const baseLen = baseline?.length || 0;
+                                    const diff = baseLen > 0
+                                        ? Math.abs(tResp.text.length - fResp.text.length) / baseLen * 100
+                                        : Math.abs(tResp.text.length - fResp.text.length) / Math.max(tResp.text.length, fResp.text.length, 1) * 100;
+                                    if (diff > config.booleanThreshold) {
                                         state.findings.push(createFinding({
                                             url: form.action, parameter: inputField.name, method: form.method,
                                             attackSurface: "form", detectionMethod: "BOOLEAN_BASED", payload: truePayload,

@@ -16,6 +16,7 @@ export function ScanForm({ onStart, scanning }: ScanFormProps) {
     const [testSecondOrder, setTestSecondOrder] = useState(false);
     const [oobDomain, setOobDomain] = useState("");
     const [requestDelay, setRequestDelay] = useState(0.5);
+    const [booleanThreshold, setBooleanThreshold] = useState(10);
     const [authCookie, setAuthCookie] = useState("");
     const [authCreds, setAuthCreds] = useState("");
 
@@ -33,6 +34,7 @@ export function ScanForm({ onStart, scanning }: ScanFormProps) {
             testAllHeaders,
             testSecondOrder,
             oobDomain: oobDomain.trim(),
+            booleanThreshold,
             authCookie: authCookie.trim(),
             authCreds: authCreds.trim(),
         });
@@ -98,9 +100,20 @@ export function ScanForm({ onStart, scanning }: ScanFormProps) {
                 </div>
 
                 <div>
-                    <label className="block text-sm text-gray-400 mb-1.5">OOB Domain (optional)</label>
+                    <label className="block text-sm text-gray-400 mb-1.5">Boolean Detection Threshold (%)</label>
                     <input
-                        type="text"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={booleanThreshold}
+                        onChange={(e) => setBooleanThreshold(Number(e.target.value))}
+                        className="w-full bg-surface border border-surface-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-blue"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                        Minimum response difference % to trigger boolean-based detection
+                    </p>
+                </div>
                         value={oobDomain}
                         onChange={(e) => setOobDomain(e.target.value)}
                         placeholder="interactsh.com"
