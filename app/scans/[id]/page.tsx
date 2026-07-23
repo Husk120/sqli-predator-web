@@ -261,7 +261,7 @@ export default function ScanDetailPage() {
             if (!isMounted) return;
 
             try {
-                const resp = await fetch(`https://sqli-predator-api.onrender.com/api/scan/${id}`);
+                const resp = await fetch(`https://sqli-predator-api.onrender.com/api/scan/${id}/status`);
                 if (!resp.ok) {
                     // On Render, the scan may take a moment to appear in the database after creation.
                     // Use exponential backoff up to 15 retries (covers ~60s of cold-start delay).
