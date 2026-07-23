@@ -1,4 +1,4 @@
-import { getAllScans } from './lib/store.ts';
+import { getAllScans } from './lib/store';
 
 async function main() {
   const scans = await getAllScans();

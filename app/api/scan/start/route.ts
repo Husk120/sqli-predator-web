@@ -8,7 +8,8 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const {
             targetUrl, crawlDepth, requestDelay, timeSamples,
-            testAllHeaders, testSecondOrder, oobDomain, authCookie, authCreds
+            testAllHeaders, testSecondOrder, oobDomain, authCookie, authCreds,
+            booleanThreshold
         } = body;
 
         if (!targetUrl) {
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
             oobDomain: oobDomain || "",
             authCookie: authCookie || "",
             authCreds: authCreds || "",
+            booleanThreshold: booleanThreshold ?? 10
         };
 
         const scanResult: ScanResult = {

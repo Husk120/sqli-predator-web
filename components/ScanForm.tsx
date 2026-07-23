@@ -114,6 +114,10 @@ export function ScanForm({ onStart, scanning }: ScanFormProps) {
                         Minimum response difference % to trigger boolean-based detection
                     </p>
                 </div>
+                        <div>
+                    <label className="block text-sm text-gray-400 mb-1.5">OOB Domain</label>
+                    <input
+                        type="text"
                         value={oobDomain}
                         onChange={(e) => setOobDomain(e.target.value)}
                         placeholder="interactsh.com"
