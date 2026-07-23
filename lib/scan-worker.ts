@@ -52,7 +52,9 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
     function log(msg: string) {
         const ts = new Date().toISOString().slice(11, 19);
         const line = `[${ts}] ${msg}`;
-        state!.scanLog.push(line);
+        if (state && state.scanLog) {
+            state.scanLog.push(line);
+        }
         console.log(line);
     }
 
