@@ -51,7 +51,9 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
 
     function log(msg: string) {
         const ts = new Date().toISOString().slice(11, 19);
-        state!.scanLog.push(`[${ts}] ${msg}`);
+        const line = `[${ts}] ${msg}`;
+        state!.scanLog.push(line);
+        console.log(line);
     }
 
     function createFinding(opts: {
