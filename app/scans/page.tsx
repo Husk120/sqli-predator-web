@@ -4,36 +4,98 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ScanResult, SEVERITY_COLORS } from "@/lib/types";
 
+function normalizeFinding(f: any) {
+    return {
+        ...f,
+        payloadUsed: f.payloadUsed ?? f.payload_used ?? "",
+        responseDifferencePercent: f.responseDifferencePercent ?? f.response_difference_pct ?? f.response_difference_percent ?? 0,
+        dbTypeHint: f.dbTypeHint ?? f.db_type_hint ?? "unknown",
+        hasSqlErrors: f.hasSqlErrors ?? f.has_sql_errors ?? false,
+        errorSignatures: f.errorSignatures ?? f.error_signatures ?? [],
+        cvssScore: f.cvssScore ?? f.cvss_score ?? 0,
+        confidenceLevel: f.confidenceLevel ?? f.confidence_level ?? "Tentative",
+        detectionMethod: f.detectionMethod ?? f.detection_method ?? "",
+        timeDelayDetected: f.timeDelayDetected ?? f.time_delay_detected ?? false,
+        timeDelaySeconds: f.timeDelaySeconds ?? f.time_delay_seconds ?? 0,
+        timingZScore: f.timingZScore ?? f.timing_z_score ?? 0,
+        timingPValue: f.timingPValue ?? f.timing_p_value ?? 0,
+        isBooleanPositive: f.isBooleanPositive ?? f.is_boolean_positive ?? null,
+        oobInteractionId: f.oobInteractionId ?? f.oob_interaction_id ?? "",
+        baselineLength: f.baselineLength ?? f.baseline_length ?? 0,
+        testLength: f.testLength ?? f.test_length ?? 0,
+        baselineTime: f.baselineTime ?? f.baseline_time ?? 0,
+        testTime: f.testTime ?? f.test_time ?? 0,
+        aiExplanation: f.aiExplanation ?? f.ai_explanation ?? f.description ?? "",
+        remediationSteps: f.remediationSteps ?? f.remediation_steps ?? f.remediation ?? [],
+        vulnerabilityClass: f.vulnerabilityClass ?? f.vulnerability_class ?? "SQL Injection",
+        rawResponseSnippet: f.rawResponseSnippet ?? f.raw_response_snippet ?? "",
+        pocRequest: f.pocRequest ?? f.poc_request ?? "",
+        cweId: f.cweId ?? f.cwe_id ?? "CWE-89",
+        owaspCategory: f.owaspCategory ?? f.owasp_category ?? "A03:2021",
+        bypassTechnique: f.bypassTechnique ?? f.bypass_technique ?? "NONE",
+        likelyFalsePositive: f.likelyFalsePositive ?? f.likely_false_positive ?? false,
+        falsePositiveReason: f.falsePositiveReason ?? f.false_positive_reason ?? "",
+    };
+}
+
+function normalizeScanResult(data: any): ScanResult {
+    if (!data) return data;
+    return {
+        ...data,
+        target: data.target ?? data.target_url ?? "",
+        findings: (data.findings || []).map(normalizeFinding),
+    };
+}
+
 export default function ScansPage() {
     const [scans, setScans] = useState<ScanResult[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchScans = async () => {
+            let combined: any[] = [];
+
             try {
                 const resp = await fetch("/api/scans");
                 if (resp.ok) {
-                    const data: ScanResult[] = await resp.json();
-                    if (data && data.length > 0) {
-                        setScans(data);
-                        // Save to localStorage as backup
-                        try {
-                            localStorage.setItem("sqli_predator_scans", JSON.stringify(data));
-                        } catch {}
-                        setLoading(false);
-                        return;
-                    }
+                    const data = await resp.json();
+                    if (Array.isArray(data)) combined.push(...data);
                 }
             } catch {}
 
-            // Fallback to localStorage if API returned empty or failed
+            try {
+                const renderResp = await fetch("https://sqli-predator-api.onrender.com/api/scans");
+                if (renderResp.ok) {
+                    const renderData = await renderResp.json();
+                    if (Array.isArray(renderData)) combined.push(...renderData);
+                }
+            } catch {}
+
             try {
                 const localData = localStorage.getItem("sqli_predator_scans");
                 if (localData) {
-                    setScans(JSON.parse(localData));
+                    const parsed = JSON.parse(localData);
+                    if (Array.isArray(parsed)) combined.push(...parsed);
                 }
             } catch {}
 
+            const map = new Map<string, any>();
+            for (const item of combined) {
+                if (item && item.id && !map.has(item.id)) {
+                    map.set(item.id, normalizeScanResult(item));
+                }
+            }
+
+            const normalizedList = Array.from(map.values()).sort((a, b) => {
+                const tA = new Date(a.timestamp || 0).getTime();
+                const tB = new Date(b.timestamp || 0).getTime();
+                return tB - tA;
+            });
+
+            setScans(normalizedList);
+            try {
+                localStorage.setItem("sqli_predator_scans", JSON.stringify(normalizedList));
+            } catch {}
             setLoading(false);
         };
 
