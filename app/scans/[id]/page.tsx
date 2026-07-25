@@ -224,6 +224,48 @@ function FindingCard({ finding, index }: { finding: SQLiFinding; index: number }
     );
 }
 
+function normalizeFinding(f: any): SQLiFinding {
+    return {
+        ...f,
+        payloadUsed: f.payloadUsed ?? f.payload_used ?? "",
+        responseDifferencePercent: f.responseDifferencePercent ?? f.response_difference_pct ?? f.response_difference_percent ?? 0,
+        dbTypeHint: f.dbTypeHint ?? f.db_type_hint ?? "unknown",
+        hasSqlErrors: f.hasSqlErrors ?? f.has_sql_errors ?? false,
+        errorSignatures: f.errorSignatures ?? f.error_signatures ?? [],
+        cvssScore: f.cvssScore ?? f.cvss_score ?? 0,
+        confidenceLevel: f.confidenceLevel ?? f.confidence_level ?? "Tentative",
+        detectionMethod: f.detectionMethod ?? f.detection_method ?? "",
+        timeDelayDetected: f.timeDelayDetected ?? f.time_delay_detected ?? false,
+        timeDelaySeconds: f.timeDelaySeconds ?? f.time_delay_seconds ?? 0,
+        timingZScore: f.timingZScore ?? f.timing_z_score ?? 0,
+        timingPValue: f.timingPValue ?? f.timing_p_value ?? 0,
+        isBooleanPositive: f.isBooleanPositive ?? f.is_boolean_positive ?? null,
+        oobInteractionId: f.oobInteractionId ?? f.oob_interaction_id ?? "",
+        baselineLength: f.baselineLength ?? f.baseline_length ?? 0,
+        testLength: f.testLength ?? f.test_length ?? 0,
+        baselineTime: f.baselineTime ?? f.baseline_time ?? 0,
+        testTime: f.testTime ?? f.test_time ?? 0,
+        aiExplanation: f.aiExplanation ?? f.ai_explanation ?? f.description ?? "",
+        remediationSteps: f.remediationSteps ?? f.remediation_steps ?? f.remediation ?? [],
+        vulnerabilityClass: f.vulnerabilityClass ?? f.vulnerability_class ?? "SQL Injection",
+        rawResponseSnippet: f.rawResponseSnippet ?? f.raw_response_snippet ?? "",
+        pocRequest: f.pocRequest ?? f.poc_request ?? "",
+        cweId: f.cweId ?? f.cwe_id ?? "CWE-89",
+        owaspCategory: f.owaspCategory ?? f.owasp_category ?? "A03:2021",
+        bypassTechnique: f.bypassTechnique ?? f.bypass_technique ?? "NONE",
+        likelyFalsePositive: f.likelyFalsePositive ?? f.likely_false_positive ?? false,
+        falsePositiveReason: f.falsePositiveReason ?? f.false_positive_reason ?? "",
+    };
+}
+
+function normalizeScanResult(data: any): ScanResult {
+    if (!data) return data;
+    return {
+        ...data,
+        findings: (data.findings || []).map(normalizeFinding),
+    };
+}
+
 export default function ScanDetailPage() {
     const params = useParams();
     const id = params.id as string;
@@ -265,7 +307,7 @@ export default function ScanDetailPage() {
         const loadFromLocal = (): ScanResult | null => {
             try {
                 const item = localStorage.getItem(`sqli_scan_${id}`);
-                if (item) return JSON.parse(item);
+                if (item) return normalizeScanResult(JSON.parse(item));
             } catch { }
             return null;
         };
@@ -302,6 +344,7 @@ export default function ScanDetailPage() {
                 if (isMounted) setPollError(null);
 
                 const data = await resp.json();
+                const normalizedData = normalizeScanResult(data);
 
                 // Stall detection: if progress hasn't changed in 90 seconds, warn
                 if (data.status === "running") {
@@ -325,20 +368,21 @@ export default function ScanDetailPage() {
                     if (data.status === "completed") {
                         const reportResp = await fetch(`https://sqli-predator-api.onrender.com/api/scan/${id}/report`);
                         if (reportResp.ok) {
-                            const report: ScanResult = await reportResp.json();
+                            const rawReport = await reportResp.json();
+                            const report: ScanResult = normalizeScanResult(rawReport);
                             if (isMounted) { setScan(report); saveToLocal(report); }
                         } else {
-                            if (isMounted) setScan(data as any);
+                            if (isMounted) setScan(normalizedData);
                         }
                     } else {
                         // Failed or stopped scan — show state from backend
-                        if (isMounted) setScan(data as any);
+                        if (isMounted) setScan(normalizedData);
                     }
                     if (isMounted) setLoading(false);
                     return;
                 }
 
-                if (isMounted) setScan(data as any);
+                if (isMounted) setScan(normalizedData);
                 if (data.status === "running") setTimeout(poll, 1500);
                 else if (isMounted) setLoading(false);
             } catch (err: any) {
