@@ -524,23 +524,23 @@ export default function ScanDetailPage() {
             <div className="flex items-start justify-between">
                 <div>
                     <div className="flex items-center gap-2 mb-1">
-                        <Link href="/scans" className="text-sm text-gray-500 hover:text-gray-400">← Back</Link>
-                        <span className="text-gray-600">|</span>
-                        <h1 className="text-xl font-bold text-white">Scan Report</h1>
+                        <Link href="/scans" className="text-sm text-[#6B7A78] hover:text-[#16231F]">← Back</Link>
+                        <span className="text-[#8A9694]">|</span>
+                        <h1 className="text-xl font-bold text-[#16231F]">Scan Report</h1>
                     </div>
-                    <p className="text-sm text-gray-500">
-                        Target: <code className="text-accent-blue">{scan.target}</code>
+                    <p className="text-sm text-[#6B7A78]">
+                        Target: <code className="text-[#0F6E56] font-mono bg-[#E1F5EE] border-0">{scan.target}</code>
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                        {new Date(scan.timestamp).toLocaleString()} · ID: <code className="text-gray-400 font-mono">{scan.id}</code>
+                    <p className="text-xs text-[#8A9694] mt-0.5">
+                        {new Date(scan.timestamp).toLocaleString()} · ID: <code className="text-[#8A9694] font-mono bg-[#E9EDEC] border-0">{scan.id}</code>
                     </p>
                 </div>
 
                 <div className="flex items-center gap-3">
                     {scan.status === "running" && (
                         <>
-                            <div className="flex items-center gap-2 text-accent-blue text-sm pulse-active px-3 py-1.5 rounded-lg border border-accent-blue/30 bg-accent-blue/5 font-medium">
-                                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                            <div className="flex items-center gap-2 text-[#085041] text-sm pulse-active px-3 py-1.5 rounded-full bg-[#E1F5EE] font-medium">
+                                <svg className="animate-spin h-4 w-4 text-[#0F6E56]" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                                 </svg>
@@ -549,7 +549,7 @@ export default function ScanDetailPage() {
                             <button
                                 onClick={handleStopScan}
                                 disabled={stopping}
-                                className="text-xs bg-accent-red text-white hover:bg-accent-red/80 px-4 py-2 rounded-lg transition-all font-semibold flex items-center gap-2 disabled:opacity-50"
+                                className="text-xs bg-accent-red text-white hover:bg-accent-red/80 px-4 py-2 rounded-full transition-all font-semibold flex items-center gap-2 disabled:opacity-50"
                             >
                                 <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
                                 {stopping ? "Stopping..." : "Stop Scan"}
@@ -557,17 +557,17 @@ export default function ScanDetailPage() {
                         </>
                     )}
                     {scan.status === "completed" && (
-                        <span className="text-xs bg-accent-green/10 text-accent-green border border-accent-green/30 px-3.5 py-2 rounded-lg font-semibold flex items-center gap-1.5">
+                        <span className="text-xs bg-[#E1F5EE] text-[#085041] px-3.5 py-2 rounded-full font-semibold flex items-center gap-1.5">
                             ✅ Complete ({scan.duration?.toFixed(1)}s)
                         </span>
                     )}
                     {scan.status === "stopped" && (
-                        <span className="text-xs bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 px-3.5 py-2 rounded-lg font-semibold flex items-center gap-1.5">
+                        <span className="text-xs bg-yellow-500/10 text-yellow-600 px-3.5 py-2 rounded-full font-semibold flex items-center gap-1.5">
                             🛑 Stopped
                         </span>
                     )}
                     {scan.status === "failed" && (
-                        <span className="text-xs bg-accent-red/10 text-accent-red border border-accent-red/30 px-3.5 py-2 rounded-lg font-semibold flex items-center gap-1.5">❌ Failed</span>
+                        <span className="text-xs bg-[#FAECE7] text-[#993C1D] px-3.5 py-2 rounded-full font-semibold flex items-center gap-1.5">❌ Failed</span>
                     )}
                 </div>
             </div>
@@ -576,27 +576,27 @@ export default function ScanDetailPage() {
             {scan.status === "running" && (
                 <div className="space-y-4">
                     {/* Pipeline & Stepper Card */}
-                    <div className="bg-surface-card border border-surface-border rounded-xl p-5 space-y-4 shadow-xl relative overflow-hidden">
+                    <div className="bg-white rounded-2xl p-5 space-y-4 relative overflow-hidden">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                                <h2 className="text-sm font-bold text-[#16231F] flex items-center gap-2">
                                     <span className="relative flex h-2.5 w-2.5">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-blue opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent-blue"></span>
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0F6E56] opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#0F6E56]"></span>
                                     </span>
                                     Scan Pipeline Progress
                                 </h2>
-                                <p className="text-xs text-gray-400 mt-0.5">{scan.currentPhase || "Executing security probes..."}</p>
+                                <p className="text-xs text-[#6B7A78] mt-0.5">{scan.currentPhase || "Executing security probes..."}</p>
                             </div>
                             <div className="text-right">
-                                <span className="text-2xl font-extrabold text-accent-blue font-mono">{scan.progress?.toFixed(0) || 0}%</span>
+                                <span className="text-2xl font-extrabold text-[#0F6E56] font-mono">{scan.progress?.toFixed(0) || 0}%</span>
                             </div>
                         </div>
 
                         {/* Enhanced Animated Progress Bar */}
-                        <div className="w-full bg-surface-border/60 rounded-full h-3.5 p-0.5 border border-surface-border/80 overflow-hidden shadow-inner">
+                        <div className="w-full bg-[#E9EDEC] rounded-full h-3.5 p-0.5 overflow-hidden">
                             <div
-                                className="h-full rounded-full bg-gradient-to-r from-accent-blue via-indigo-500 to-accent-purple transition-all duration-700 relative overflow-hidden shadow-[0_0_12px_rgba(59,130,246,0.6)]"
+                                className="h-full rounded-full bg-[#0F6E56] transition-all duration-700 relative overflow-hidden"
                                 style={{ width: `${Math.max(scan.progress || 0, 3)}%` }}
                             >
                                 <div className="absolute inset-0 bg-white/20 animate-pulse" />
@@ -621,7 +621,7 @@ export default function ScanDetailPage() {
                             else if (p.includes("form") || progress >= 20) activeIdx = 1;
 
                             return (
-                                <div className="grid grid-cols-5 gap-2 pt-3 border-t border-surface-border/60">
+                                <div className="grid grid-cols-5 gap-2 pt-3 border-t border-[#E9EDEC]">
                                     {steps.map((step, idx) => {
                                         const isCompleted = idx < activeIdx;
                                         const isCurrent = idx === activeIdx;
@@ -630,18 +630,18 @@ export default function ScanDetailPage() {
                                                 <div
                                                     className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                                                         isCompleted
-                                                            ? "bg-accent-green text-black font-extrabold"
+                                                            ? "bg-[#0F6E56] text-white font-extrabold"
                                                             : isCurrent
-                                                            ? "bg-accent-blue text-white ring-4 ring-accent-blue/20 animate-pulse"
-                                                            : "bg-surface border border-surface-border text-gray-600"
+                                                            ? "bg-[#0F6E56] text-white ring-4 ring-[#0F6E56]/20 animate-pulse"
+                                                            : "bg-[#E9EDEC] text-[#8A9694]"
                                                     }`}
                                                 >
                                                     {isCompleted ? "✓" : idx + 1}
                                                 </div>
-                                                <span className={`text-xs mt-2 font-medium ${isCurrent ? "text-accent-blue" : isCompleted ? "text-gray-300" : "text-gray-600"}`}>
+                                                <span className={`text-xs mt-2 font-medium ${isCurrent ? "text-[#0F6E56]" : isCompleted ? "text-[#16231F]" : "text-[#8A9694]"}`}>
                                                     {step.label}
                                                 </span>
-                                                <span className="text-[10px] text-gray-500 hidden md:block mt-0.5">{step.sub}</span>
+                                                <span className="text-[10px] text-[#8A9694] hidden md:block mt-0.5">{step.sub}</span>
                                             </div>
                                         );
                                     })}
@@ -650,8 +650,8 @@ export default function ScanDetailPage() {
                         })()}
 
                         {isStalled && (
-                            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mt-2">
-                                <p className="text-xs text-yellow-500 leading-relaxed font-medium">
+                            <div className="bg-yellow-500/10 rounded-xl p-3 mt-2">
+                                <p className="text-xs text-yellow-700 leading-relaxed font-medium">
                                     ⚠️ Scan progress has not changed for over 90 seconds. Serverless processing may be delayed or cold-starting.
                                 </p>
                             </div>
@@ -659,27 +659,27 @@ export default function ScanDetailPage() {
                     </div>
 
                     {/* Live Activity Feed Area */}
-                    <div className="bg-surface-card border border-surface-border rounded-xl p-4 space-y-2.5 shadow-lg">
-                        <div className="flex items-center justify-between border-b border-surface-border/60 pb-2">
-                            <h3 className="text-xs font-semibold text-gray-300 flex items-center gap-2">
-                                <span className="h-2 w-2 rounded-full bg-accent-green animate-ping" />
+                    <div className="bg-white rounded-2xl p-4 space-y-2.5">
+                        <div className="flex items-center justify-between border-b border-[#E9EDEC] pb-2">
+                            <h3 className="text-xs font-semibold text-[#16231F] flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full bg-[#0F6E56] animate-ping" />
                                 Live Activity Feed
                             </h3>
-                            <span className="text-[11px] text-gray-500 font-mono">
+                            <span className="text-[11px] text-[#8A9694] font-mono">
                                 {scan.scanLog?.length || 0} entries recorded
                             </span>
                         </div>
 
-                        <div className="bg-surface rounded-lg p-3 max-h-60 overflow-y-auto font-mono text-xs border border-surface-border/60 space-y-1">
+                        <div className="bg-[#F5F7F6] rounded-xl p-3 max-h-60 overflow-y-auto font-mono text-xs space-y-1 text-[#16231F]">
                             {scan.scanLog && scan.scanLog.length > 0 ? (
                                 scan.scanLog.slice(-20).map((entry, i) => {
-                                    let cls = "text-gray-400";
-                                    if (entry.includes("FINDING:")) cls = "text-accent-red font-semibold";
-                                    else if (entry.includes("BOOLEAN CONFIRMED:")) cls = "text-accent-blue font-semibold";
-                                    else if (entry.includes("[ERROR]")) cls = "text-yellow-500";
-                                    else if (entry.includes("═══")) cls = "text-white font-semibold";
-                                    else if (entry.includes("──")) cls = "text-gray-300";
-                                    else if (entry.includes("Tech stack:")) cls = "text-accent-green";
+                                    let cls = "text-[#6B7A78]";
+                                    if (entry.includes("FINDING:")) cls = "text-[#993C1D] font-semibold";
+                                    else if (entry.includes("BOOLEAN CONFIRMED:")) cls = "text-[#0F6E56] font-semibold";
+                                    else if (entry.includes("[ERROR]")) cls = "text-yellow-700";
+                                    else if (entry.includes("═══")) cls = "text-[#16231F] font-semibold";
+                                    else if (entry.includes("──")) cls = "text-[#8A9694]";
+                                    else if (entry.includes("Tech stack:")) cls = "text-[#085041]";
                                     return (
                                         <div key={i} className={`leading-relaxed ${cls}`}>
                                             {entry}
@@ -687,7 +687,7 @@ export default function ScanDetailPage() {
                                     );
                                 })
                             ) : (
-                                <div className="text-gray-500 text-center py-6 italic text-xs">
+                                <div className="text-[#8A9694] text-center py-6 italic text-xs">
                                     Initializing scanner engine... Executing baseline checks and payload injections...
                                 </div>
                             )}
