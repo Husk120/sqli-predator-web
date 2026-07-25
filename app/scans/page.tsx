@@ -73,7 +73,7 @@ export default function ScansPage() {
             try {
                 const deletedRaw = localStorage.getItem("sqli_predator_deleted_scans");
                 if (deletedRaw) deletedIds = JSON.parse(deletedRaw);
-            } catch {}
+            } catch { }
 
             try {
                 const resp = await fetch("/api/scans");
@@ -81,7 +81,7 @@ export default function ScansPage() {
                     const data = await resp.json();
                     if (Array.isArray(data)) combined.push(...data);
                 }
-            } catch {}
+            } catch { }
 
             try {
                 const renderResp = await fetch("https://sqli-predator-api.onrender.com/api/scans");
@@ -89,7 +89,7 @@ export default function ScansPage() {
                     const renderData = await renderResp.json();
                     if (Array.isArray(renderData)) combined.push(...renderData);
                 }
-            } catch {}
+            } catch { }
 
             try {
                 const localData = localStorage.getItem("sqli_predator_scans");
@@ -97,7 +97,7 @@ export default function ScansPage() {
                     const parsed = JSON.parse(localData);
                     if (Array.isArray(parsed)) combined.push(...parsed);
                 }
-            } catch {}
+            } catch { }
 
             const map = new Map<string, any>();
             for (const item of combined) {
@@ -115,7 +115,7 @@ export default function ScansPage() {
             setScans(normalizedList);
             try {
                 localStorage.setItem("sqli_predator_scans", JSON.stringify(normalizedList));
-            } catch {}
+            } catch { }
             setLoading(false);
         };
 
@@ -128,7 +128,7 @@ export default function ScansPage() {
 
         try {
             localStorage.removeItem(`sqli_scan_${id}`);
-        } catch {}
+        } catch { }
 
         try {
             const deletedRaw = localStorage.getItem("sqli_predator_deleted_scans");
@@ -137,13 +137,13 @@ export default function ScansPage() {
                 deleted.push(id);
                 localStorage.setItem("sqli_predator_deleted_scans", JSON.stringify(deleted));
             }
-        } catch {}
+        } catch { }
 
         const updated = scans.filter((s) => s.id !== id);
         setScans(updated);
         try {
             localStorage.setItem("sqli_predator_scans", JSON.stringify(updated));
-        } catch {}
+        } catch { }
 
         setConfirmDeleteId(null);
     };
@@ -152,7 +152,7 @@ export default function ScansPage() {
         for (const scan of scans) {
             try {
                 localStorage.removeItem(`sqli_scan_${scan.id}`);
-            } catch {}
+            } catch { }
         }
 
         try {
@@ -164,11 +164,11 @@ export default function ScansPage() {
                 }
             }
             localStorage.setItem("sqli_predator_deleted_scans", JSON.stringify(deleted));
-        } catch {}
+        } catch { }
 
         try {
             localStorage.removeItem("sqli_predator_scans");
-        } catch {}
+        } catch { }
 
         setScans([]);
         setConfirmClearAll(false);
@@ -250,12 +250,11 @@ export default function ScansPage() {
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <span className={`text-xs px-2 py-1 rounded-full ${
-                                        scan.status === "completed" ? "bg-accent-green/10 text-accent-green" :
-                                        scan.status === "running" ? "bg-accent-blue/10 text-accent-blue pulse-active" :
-                                        scan.status === "failed" ? "bg-accent-red/10 text-accent-red" :
-                                        "bg-gray-500/10 text-gray-400"
-                                    }`}>
+                                    <span className={`text-xs px-2 py-1 rounded-full ${scan.status === "completed" ? "bg-accent-green/10 text-accent-green" :
+                                            scan.status === "running" ? "bg-accent-blue/10 text-accent-blue pulse-active" :
+                                                scan.status === "failed" ? "bg-accent-red/10 text-accent-red" :
+                                                    "bg-gray-500/10 text-gray-400"
+                                        }`}>
                                         {scan.status}
                                     </span>
 

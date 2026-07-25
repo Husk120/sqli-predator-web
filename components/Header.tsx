@@ -7,14 +7,14 @@ export function Header() {
     const [mobileOpen, setMobileOpen] = useState(false);
 
     return (
-        <header className="border-b border-surface-border bg-surface/80 backdrop-blur-sm sticky top-0 z-50">
+        <header className="bg-white/90 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
             <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
                 <Link href="/" className="flex items-center gap-2">
                     <span className="text-2xl">🦅</span>
-                    <span className="font-bold text-lg text-white">
-                        SQLi-<span className="text-accent-blue">PREDATOR</span>
+                    <span className="font-bold text-lg text-[#16231F]">
+                        SQLi-<span className="text-[#0F6E56]">PREDATOR</span>
                     </span>
-                    <span className="text-xs text-gray-500 ml-1 border border-surface-border px-1.5 py-0.5 rounded">
+                    <span className="text-xs text-[#8A9694] ml-1 bg-[#E9EDEC] px-1.5 py-0.5 rounded-full">
                         v4.0
                     </span>
                 </Link>
@@ -22,13 +22,13 @@ export function Header() {
                 <nav className="hidden md:flex items-center gap-6">
                     <Link
                         href="/"
-                        className="text-sm text-gray-400 hover:text-white transition-colors"
+                        className="text-sm text-[#6B7A78] hover:text-[#16231F] transition-colors"
                     >
                         New Scan
                     </Link>
                     <Link
                         href="/scans"
-                        className="text-sm text-gray-400 hover:text-white transition-colors"
+                        className="text-sm text-[#6B7A78] hover:text-[#16231F] transition-colors"
                     >
                         Scan History
                     </Link>
@@ -36,7 +36,7 @@ export function Header() {
                         href="https://github.com/hackerai/sqli-predator"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-gray-400 hover:text-white transition-colors"
+                        className="text-sm text-[#6B7A78] hover:text-[#16231F] transition-colors"
                     >
                         GitHub
                     </a>
