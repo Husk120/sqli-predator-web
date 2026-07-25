@@ -260,14 +260,22 @@ function normalizeFinding(f: any): SQLiFinding {
 
 function normalizeScanResult(data: any): ScanResult {
     if (!data) return data;
+    let ts = data.timestamp ?? data.created_at ?? data.createdAt;
+    if (!ts || isNaN(new Date(ts).getTime())) {
+        ts = new Date().toISOString();
+    } else {
+        ts = new Date(ts).toISOString();
+    }
     return {
         ...data,
         id: data.id ?? data.scan_id ?? data.scanId ?? "",
         target: data.target ?? data.target_url ?? data.targetUrl ?? "",
+        timestamp: ts,
         status: data.status ?? "idle",
         progress: data.progress ?? 0,
         currentPhase: data.currentPhase ?? data.current_phase ?? "",
         duration: data.duration ?? data.duration_seconds ?? 0,
+        scanLog: data.scanLog ?? data.scan_log ?? data.logs ?? [],
         findings: (data.findings || []).map(normalizeFinding),
     };
 }
@@ -523,67 +531,168 @@ export default function ScanDetailPage() {
                     <p className="text-sm text-gray-500">
                         Target: <code className="text-accent-blue">{scan.target}</code>
                     </p>
-                    <p className="text-xs text-gray-600 mt-0.5">
-                        {new Date(scan.timestamp).toLocaleString()} · ID: {scan.id}
+                    <p className="text-xs text-gray-500 mt-0.5">
+                        {new Date(scan.timestamp).toLocaleString()} · ID: <code className="text-gray-400 font-mono">{scan.id}</code>
                     </p>
                 </div>
 
                 <div className="flex items-center gap-3">
                     {scan.status === "running" && (
                         <>
-                            <div className="flex items-center gap-2 text-accent-blue text-sm pulse-active px-3 py-1.5 rounded-lg border border-accent-blue/30">
-                                <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24">
+                            <div className="flex items-center gap-2 text-accent-blue text-sm pulse-active px-3 py-1.5 rounded-lg border border-accent-blue/30 bg-accent-blue/5 font-medium">
+                                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                                 </svg>
-                                Scanning...
+                                Scanning Active...
                             </div>
                             <button
                                 onClick={handleStopScan}
                                 disabled={stopping}
-                                className="text-xs bg-accent-red/10 text-accent-red hover:bg-accent-red/20 border border-accent-red/30 px-3 py-1.5 rounded-lg transition-colors font-medium flex items-center gap-1.5"
+                                className="text-xs bg-accent-red/10 text-accent-red hover:bg-accent-red/20 border border-accent-red/40 px-3.5 py-2 rounded-lg transition-all font-medium flex items-center gap-2 shadow-sm hover:scale-[1.02] active:scale-95 disabled:opacity-50"
                             >
-                                ⏹️ {stopping ? "Stopping..." : "Stop Scan"}
+                                <span className="h-2 w-2 rounded-full bg-accent-red" />
+                                {stopping ? "Stopping..." : "Stop Scan"}
                             </button>
                         </>
                     )}
                     {scan.status === "completed" && (
-                        <span className="text-xs bg-accent-green/10 text-accent-green px-3 py-1.5 rounded-lg font-medium">
+                        <span className="text-xs bg-accent-green/10 text-accent-green border border-accent-green/30 px-3.5 py-2 rounded-lg font-semibold flex items-center gap-1.5">
                             ✅ Complete ({scan.duration?.toFixed(1)}s)
                         </span>
                     )}
                     {scan.status === "stopped" && (
-                        <span className="text-xs bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 px-3 py-1.5 rounded-lg font-medium">
+                        <span className="text-xs bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 px-3.5 py-2 rounded-lg font-semibold flex items-center gap-1.5">
                             🛑 Stopped
                         </span>
                     )}
                     {scan.status === "failed" && (
-                        <span className="text-xs bg-accent-red/10 text-accent-red px-3 py-1.5 rounded-lg font-medium">❌ Failed</span>
+                        <span className="text-xs bg-accent-red/10 text-accent-red border border-accent-red/30 px-3.5 py-2 rounded-lg font-semibold flex items-center gap-1.5">❌ Failed</span>
                     )}
                 </div>
             </div>
 
-            {/* Progress bar */}
+            {/* Scan in Progress Redesign */}
             {scan.status === "running" && (
-                <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-gray-500">
-                        <span>{scan.currentPhase}</span>
-                        <span>{scan.progress?.toFixed(0)}%</span>
-                    </div>
-                    <div className="w-full bg-surface-border rounded-full h-1.5">
-                        <div
-                            className="bg-accent-blue h-1.5 rounded-full transition-all duration-1000"
-                            style={{ width: `${scan.progress || 0}%` }}
-                        />
-                    </div>
-                    {isStalled && (
-                        <div className="bg-yellow-500/5 border border-yellow-500/30 rounded-lg p-2.5 mt-2">
-                            <p className="text-xs text-yellow-500">
-                                ⚠️ Scan progress has not changed for over 90 seconds. The serverless function may have timed out.
-                                If this persists, try starting a new scan.
-                            </p>
+                <div className="space-y-4">
+                    {/* Pipeline & Stepper Card */}
+                    <div className="bg-surface-card border border-surface-border rounded-xl p-5 space-y-4 shadow-xl relative overflow-hidden">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                                    <span className="relative flex h-2.5 w-2.5">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-blue opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent-blue"></span>
+                                    </span>
+                                    Scan Pipeline Progress
+                                </h2>
+                                <p className="text-xs text-gray-400 mt-0.5">{scan.currentPhase || "Executing security probes..."}</p>
+                            </div>
+                            <div className="text-right">
+                                <span className="text-2xl font-extrabold text-accent-blue font-mono">{scan.progress?.toFixed(0) || 0}%</span>
+                            </div>
                         </div>
-                    )}
+
+                        {/* Enhanced Animated Progress Bar */}
+                        <div className="w-full bg-surface-border/60 rounded-full h-3.5 p-0.5 border border-surface-border/80 overflow-hidden shadow-inner">
+                            <div
+                                className="h-full rounded-full bg-gradient-to-r from-accent-blue via-indigo-500 to-accent-purple transition-all duration-700 relative overflow-hidden shadow-[0_0_12px_rgba(59,130,246,0.6)]"
+                                style={{ width: `${Math.max(scan.progress || 0, 3)}%` }}
+                            >
+                                <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                            </div>
+                        </div>
+
+                        {/* Visual Phase Timeline Stepper */}
+                        {(() => {
+                            const steps = [
+                                { label: "Discovery", sub: "Crawl & Tech Stack" },
+                                { label: "Form Testing", sub: "Inputs & Payloads" },
+                                { label: "URL Params", sub: "Query String" },
+                                { label: "Headers", sub: "HTTP Headers" },
+                                { label: "Finalize", sub: "Report Generation" },
+                            ];
+                            const p = (scan.currentPhase || "").toLowerCase();
+                            const progress = scan.progress || 0;
+                            let activeIdx = 0;
+                            if (progress >= 100 || p.includes("complete") || p.includes("finalize")) activeIdx = 4;
+                            else if (p.includes("header") || progress >= 80) activeIdx = 3;
+                            else if (p.includes("param") || progress >= 65) activeIdx = 2;
+                            else if (p.includes("form") || progress >= 20) activeIdx = 1;
+
+                            return (
+                                <div className="grid grid-cols-5 gap-2 pt-3 border-t border-surface-border/60">
+                                    {steps.map((step, idx) => {
+                                        const isCompleted = idx < activeIdx;
+                                        const isCurrent = idx === activeIdx;
+                                        return (
+                                            <div key={idx} className="flex flex-col items-center text-center group">
+                                                <div
+                                                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                                                        isCompleted
+                                                            ? "bg-accent-green text-black font-extrabold"
+                                                            : isCurrent
+                                                            ? "bg-accent-blue text-white ring-4 ring-accent-blue/20 animate-pulse"
+                                                            : "bg-surface border border-surface-border text-gray-600"
+                                                    }`}
+                                                >
+                                                    {isCompleted ? "✓" : idx + 1}
+                                                </div>
+                                                <span className={`text-xs mt-2 font-medium ${isCurrent ? "text-accent-blue" : isCompleted ? "text-gray-300" : "text-gray-600"}`}>
+                                                    {step.label}
+                                                </span>
+                                                <span className="text-[10px] text-gray-500 hidden md:block mt-0.5">{step.sub}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        })()}
+
+                        {isStalled && (
+                            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mt-2">
+                                <p className="text-xs text-yellow-500 leading-relaxed font-medium">
+                                    ⚠️ Scan progress has not changed for over 90 seconds. Serverless processing may be delayed or cold-starting.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Live Activity Feed Area */}
+                    <div className="bg-surface-card border border-surface-border rounded-xl p-4 space-y-2.5 shadow-lg">
+                        <div className="flex items-center justify-between border-b border-surface-border/60 pb-2">
+                            <h3 className="text-xs font-semibold text-gray-300 flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full bg-accent-green animate-ping" />
+                                Live Activity Feed
+                            </h3>
+                            <span className="text-[11px] text-gray-500 font-mono">
+                                {scan.scanLog?.length || 0} entries recorded
+                            </span>
+                        </div>
+
+                        <div className="bg-surface rounded-lg p-3 max-h-60 overflow-y-auto font-mono text-xs border border-surface-border/60 space-y-1">
+                            {scan.scanLog && scan.scanLog.length > 0 ? (
+                                scan.scanLog.slice(-20).map((entry, i) => {
+                                    let cls = "text-gray-400";
+                                    if (entry.includes("FINDING:")) cls = "text-accent-red font-semibold";
+                                    else if (entry.includes("BOOLEAN CONFIRMED:")) cls = "text-accent-blue font-semibold";
+                                    else if (entry.includes("[ERROR]")) cls = "text-yellow-500";
+                                    else if (entry.includes("═══")) cls = "text-white font-semibold";
+                                    else if (entry.includes("──")) cls = "text-gray-300";
+                                    else if (entry.includes("Tech stack:")) cls = "text-accent-green";
+                                    return (
+                                        <div key={i} className={`leading-relaxed ${cls}`}>
+                                            {entry}
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <div className="text-gray-500 text-center py-6 italic text-xs">
+                                    Initializing scanner engine... Executing baseline checks and payload injections...
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
 
