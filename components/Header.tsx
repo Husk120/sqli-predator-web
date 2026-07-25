@@ -22,14 +22,14 @@ export function Header() {
     };
 
     return (
-        <header className="bg-[var(--bg-card)] border-b border-[var(--border-subtle)] sticky top-0 z-50 shadow-sm transition-colors">
+        <header className="bg-[var(--bg-card)] border-b border-[var(--border-subtle)] sticky top-0 z-50 transition-colors">
             <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-                <Link href="/" className="flex items-center gap-2">
+                <Link href="/" className="flex items-center gap-2 focus:outline-none border-0">
                     <span className="text-2xl">🦅</span>
                     <span className="font-bold text-lg text-[var(--text-primary)]">
                         SQLi-<span className="text-[var(--accent-primary)]">PREDATOR</span>
                     </span>
-                    <span className="text-xs text-[var(--text-muted)] bg-[var(--bg-pill-muted)] px-1.5 py-0.5 rounded-full">
+                    <span className="text-[10px] font-semibold text-[var(--text-accent)] bg-[var(--bg-pill-accent)] px-2 py-0.5 rounded-full border-0">
                         v4.0
                     </span>
                 </Link>
@@ -58,7 +58,7 @@ export function Header() {
                     <button
                         onClick={toggleTheme}
                         aria-label="Toggle theme"
-                        className="p-1.5 rounded-full bg-[var(--bg-pill-muted)] text-[var(--text-primary)] hover:opacity-80 transition-all text-sm flex items-center justify-center w-8 h-8"
+                        className="p-1.5 rounded-full bg-[var(--bg-pill-muted)] text-[var(--text-primary)] hover:opacity-80 transition-all text-sm flex items-center justify-center w-8 h-8 cursor-pointer"
                     >
                         {theme === "light" ? "🌙" : "☀️"}
                     </button>

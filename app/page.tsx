@@ -68,33 +68,33 @@ export default function HomePage() {
     }, [router]);
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 pt-4 md:pt-6">
             {/* Hero */}
-            <div className="text-center py-8">
+            <div className="text-center py-6">
                 <h1 className="text-4xl font-bold text-[var(--text-primary)] mb-3">
                     🦅 SQLi-<span className="text-[var(--accent-primary)]">PREDATOR</span>
                 </h1>
-                <p className="text-[var(--text-secondary)] max-w-2xl mx-auto">
+                <p className="text-[var(--text-secondary)] max-w-2xl mx-auto text-sm md:text-base leading-relaxed">
                     Advanced SQL Injection Detection Engine — Multi-Vector, Polymorphic,
                     OOB & Statistical Analysis. <strong className="text-accent-orange">Authorized use only.</strong>
                 </p>
-                <div className="flex gap-2 justify-center mt-4 flex-wrap">
-                    <span className="text-xs bg-[var(--bg-pill-muted)] text-[var(--text-secondary)] px-2.5 py-1 rounded-full">
+                <div className="flex gap-2.5 justify-center mt-5 flex-wrap">
+                    <span className="text-xs bg-[var(--bg-pill-muted)] text-[var(--text-primary)] px-3 py-1.5 rounded-full border border-[var(--border-subtle)] hover:border-[var(--accent-primary)]/40 hover:scale-105 transition-all shadow-sm">
                         ⚠️ Error-Based
                     </span>
-                    <span className="text-xs bg-[var(--bg-pill-muted)] text-[var(--text-secondary)] px-2.5 py-1 rounded-full">
+                    <span className="text-xs bg-[var(--bg-pill-muted)] text-[var(--text-primary)] px-3 py-1.5 rounded-full border border-[var(--border-subtle)] hover:border-[var(--accent-primary)]/40 hover:scale-105 transition-all shadow-sm">
                         🔍 Boolean Blind
                     </span>
-                    <span className="text-xs bg-[var(--bg-pill-muted)] text-[var(--text-secondary)] px-2.5 py-1 rounded-full">
+                    <span className="text-xs bg-[var(--bg-pill-muted)] text-[var(--text-primary)] px-3 py-1.5 rounded-full border border-[var(--border-subtle)] hover:border-[var(--accent-primary)]/40 hover:scale-105 transition-all shadow-sm">
                         ⏱️ Time-Based (Statistical)
                     </span>
-                    <span className="text-xs bg-[var(--bg-pill-muted)] text-[var(--text-secondary)] px-2.5 py-1 rounded-full">
+                    <span className="text-xs bg-[var(--bg-pill-muted)] text-[var(--text-primary)] px-3 py-1.5 rounded-full border border-[var(--border-subtle)] hover:border-[var(--accent-primary)]/40 hover:scale-105 transition-all shadow-sm">
                         🔗 UNION Probe
                     </span>
-                    <span className="text-xs bg-[var(--bg-pill-muted)] text-[var(--text-secondary)] px-2.5 py-1 rounded-full">
+                    <span className="text-xs bg-[var(--bg-pill-muted)] text-[var(--text-primary)] px-3 py-1.5 rounded-full border border-[var(--border-subtle)] hover:border-[var(--accent-primary)]/40 hover:scale-105 transition-all shadow-sm">
                         🌐 OOB DNS/HTTP
                     </span>
-                    <span className="text-xs bg-[var(--bg-pill-muted)] text-[var(--text-secondary)] px-2.5 py-1 rounded-full">
+                    <span className="text-xs bg-[var(--bg-pill-muted)] text-[var(--text-primary)] px-3 py-1.5 rounded-full border border-[var(--border-subtle)] hover:border-[var(--accent-primary)]/40 hover:scale-105 transition-all shadow-sm">
                         🔄 Second-Order
                     </span>
                 </div>
@@ -125,21 +125,25 @@ export default function HomePage() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
-                <div className="bg-[var(--bg-card)] rounded-2xl p-4 text-center border border-[var(--border-subtle)] transition-colors">
-                    <div className="text-2xl font-bold text-[var(--accent-primary)]">460+</div>
-                    <div className="text-xs text-[var(--text-secondary)] mt-1">Base Payloads</div>
+                <div className="bg-[var(--bg-card)] rounded-2xl p-4 text-center border border-[var(--border-subtle)] border-t-2 border-t-[var(--accent-primary)] transition-all hover:scale-[1.02] shadow-sm">
+                    <div className="text-xl mb-1">💣</div>
+                    <div className="text-2xl font-bold text-[var(--accent-primary)] font-mono">460+</div>
+                    <div className="text-xs text-[var(--text-secondary)] mt-1 font-medium">Base Payloads</div>
                 </div>
-                <div className="bg-[var(--bg-card)] rounded-2xl p-4 text-center border border-[var(--border-subtle)] transition-colors">
-                    <div className="text-2xl font-bold text-[var(--accent-primary)]">8</div>
-                    <div className="text-xs text-[var(--text-secondary)] mt-1">Detection Methods</div>
+                <div className="bg-[var(--bg-card)] rounded-2xl p-4 text-center border border-[var(--border-subtle)] border-t-2 border-t-[var(--accent-primary)] transition-all hover:scale-[1.02] shadow-sm">
+                    <div className="text-xl mb-1">🛡️</div>
+                    <div className="text-2xl font-bold text-[var(--accent-primary)] font-mono">8</div>
+                    <div className="text-xs text-[var(--text-secondary)] mt-1 font-medium">Detection Methods</div>
                 </div>
-                <div className="bg-[var(--bg-card)] rounded-2xl p-4 text-center border border-[var(--border-subtle)] transition-colors">
-                    <div className="text-2xl font-bold text-[var(--accent-primary)]">7</div>
-                    <div className="text-xs text-[var(--text-secondary)] mt-1">Injection Vectors</div>
+                <div className="bg-[var(--bg-card)] rounded-2xl p-4 text-center border border-[var(--border-subtle)] border-t-2 border-t-[var(--accent-primary)] transition-all hover:scale-[1.02] shadow-sm">
+                    <div className="text-xl mb-1">🎯</div>
+                    <div className="text-2xl font-bold text-[var(--accent-primary)] font-mono">7</div>
+                    <div className="text-xs text-[var(--text-secondary)] mt-1 font-medium">Injection Vectors</div>
                 </div>
-                <div className="bg-[var(--bg-card)] rounded-2xl p-4 text-center border border-[var(--border-subtle)] transition-colors">
-                    <div className="text-2xl font-bold text-[var(--accent-primary)]">∞</div>
-                    <div className="text-xs text-[var(--text-secondary)] mt-1">Polymorphic Variants</div>
+                <div className="bg-[var(--bg-card)] rounded-2xl p-4 text-center border border-[var(--border-subtle)] border-t-2 border-t-[var(--accent-primary)] transition-all hover:scale-[1.02] shadow-sm">
+                    <div className="text-xl mb-1">🧬</div>
+                    <div className="text-2xl font-bold text-[var(--accent-primary)] font-mono">∞</div>
+                    <div className="text-xs text-[var(--text-secondary)] mt-1 font-medium">Polymorphic Variants</div>
                 </div>
             </div>
         </div>
