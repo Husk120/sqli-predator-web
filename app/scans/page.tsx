@@ -55,10 +55,18 @@ function normalizeScanResult(data: any): ScanResult {
 export default function ScansPage() {
     const [scans, setScans] = useState<ScanResult[]>([]);
     const [loading, setLoading] = useState(true);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const [confirmClearAll, setConfirmClearAll] = useState(false);
 
     useEffect(() => {
         const fetchScans = async () => {
             let combined: any[] = [];
+            let deletedIds: string[] = [];
+
+            try {
+                const deletedRaw = localStorage.getItem("sqli_predator_deleted_scans");
+                if (deletedRaw) deletedIds = JSON.parse(deletedRaw);
+            } catch {}
 
             try {
                 const resp = await fetch("/api/scans");
@@ -86,7 +94,7 @@ export default function ScansPage() {
 
             const map = new Map<string, any>();
             for (const item of combined) {
-                if (item && item.id && !map.has(item.id)) {
+                if (item && item.id && !map.has(item.id) && !deletedIds.includes(item.id)) {
                     map.set(item.id, normalizeScanResult(item));
                 }
             }
@@ -107,16 +115,103 @@ export default function ScansPage() {
         fetchScans();
     }, []);
 
+    const confirmDelete = (id: string, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        try {
+            localStorage.removeItem(`sqli_scan_${id}`);
+        } catch {}
+
+        try {
+            const deletedRaw = localStorage.getItem("sqli_predator_deleted_scans");
+            const deleted: string[] = deletedRaw ? JSON.parse(deletedRaw) : [];
+            if (!deleted.includes(id)) {
+                deleted.push(id);
+                localStorage.setItem("sqli_predator_deleted_scans", JSON.stringify(deleted));
+            }
+        } catch {}
+
+        const updated = scans.filter((s) => s.id !== id);
+        setScans(updated);
+        try {
+            localStorage.setItem("sqli_predator_scans", JSON.stringify(updated));
+        } catch {}
+
+        setConfirmDeleteId(null);
+    };
+
+    const clearAllHistory = () => {
+        for (const scan of scans) {
+            try {
+                localStorage.removeItem(`sqli_scan_${scan.id}`);
+            } catch {}
+        }
+
+        try {
+            const deletedRaw = localStorage.getItem("sqli_predator_deleted_scans");
+            const deleted: string[] = deletedRaw ? JSON.parse(deletedRaw) : [];
+            for (const scan of scans) {
+                if (scan.id && !deleted.includes(scan.id)) {
+                    deleted.push(scan.id);
+                }
+            }
+            localStorage.setItem("sqli_predator_deleted_scans", JSON.stringify(deleted));
+        } catch {}
+
+        try {
+            localStorage.removeItem("sqli_predator_scans");
+        } catch {}
+
+        setScans([]);
+        setConfirmClearAll(false);
+    };
+
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-white">Scan History</h1>
-                <Link
-                    href="/"
-                    className="text-sm bg-accent-blue text-white px-4 py-2 rounded-lg hover:bg-accent-blue/80 transition-colors"
-                >
-                    + New Scan
-                </Link>
+            <div className="flex items-center justify-between flex-wrap gap-3">
+                <div>
+                    <h1 className="text-2xl font-bold text-white">Scan History</h1>
+                    <p className="text-xs text-gray-500 mt-0.5">Local scan traces and saved reports</p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    {scans.length > 0 && (
+                        <div>
+                            {confirmClearAll ? (
+                                <div className="flex items-center gap-2 bg-accent-red/10 border border-accent-red/30 px-3 py-1.5 rounded-lg">
+                                    <span className="text-xs text-accent-red font-medium">Clear all local history?</span>
+                                    <button
+                                        onClick={clearAllHistory}
+                                        className="text-xs bg-accent-red text-white px-2.5 py-1 rounded hover:bg-accent-red/80 transition-colors font-medium"
+                                    >
+                                        Yes, Clear All
+                                    </button>
+                                    <button
+                                        onClick={() => setConfirmClearAll(false)}
+                                        className="text-xs bg-surface text-gray-400 px-2.5 py-1 rounded hover:text-white transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => setConfirmClearAll(true)}
+                                    className="text-xs text-gray-400 hover:text-accent-red border border-surface-border hover:border-accent-red/40 px-3 py-1.5 rounded-lg transition-colors font-medium flex items-center gap-1.5"
+                                >
+                                    🗑️ Clear All History
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    <Link
+                        href="/"
+                        className="text-sm bg-accent-blue text-white px-4 py-2 rounded-lg hover:bg-accent-blue/80 transition-colors"
+                    >
+                        + New Scan
+                    </Link>
+                </div>
             </div>
 
             {loading ? (
@@ -124,7 +219,7 @@ export default function ScansPage() {
             ) : scans.length === 0 ? (
                 <div className="text-center py-12 border border-dashed border-surface-border rounded-xl">
                     <div className="text-4xl mb-3">🦅</div>
-                    <p className="text-gray-500">No scans yet.</p>
+                    <p className="text-gray-500">No scans in history.</p>
                     <Link
                         href="/"
                         className="inline-block mt-3 text-sm text-accent-blue hover:underline"
@@ -138,16 +233,16 @@ export default function ScansPage() {
                         <Link
                             key={scan.id}
                             href={`/scans/${scan.id}`}
-                            className="block bg-surface-card border border-surface-border rounded-lg p-4 hover:border-gray-600 transition-colors"
+                            className="block bg-surface-card border border-surface-border rounded-lg p-4 hover:border-gray-600 transition-colors relative group"
                         >
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-white">{scan.target}</p>
                                     <p className="text-xs text-gray-500 mt-1">
-                                        {new Date(scan.timestamp).toLocaleString()} · {scan.findings?.length || 0} findings
+                                        {new Date(scan.timestamp).toLocaleString()} · {scan.findings?.length || 0} findings · ID: <code className="text-gray-400 font-mono">{scan.id}</code>
                                     </p>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-3">
                                     <span className={`text-xs px-2 py-1 rounded-full ${
                                         scan.status === "completed" ? "bg-accent-green/10 text-accent-green" :
                                         scan.status === "running" ? "bg-accent-blue/10 text-accent-blue pulse-active" :
@@ -156,10 +251,40 @@ export default function ScansPage() {
                                     }`}>
                                         {scan.status}
                                     </span>
+
+                                    {/* Delete action */}
+                                    {confirmDeleteId === scan.id ? (
+                                        <div
+                                            className="flex items-center gap-1.5 bg-accent-red/10 border border-accent-red/30 px-2 py-1 rounded-lg"
+                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                        >
+                                            <span className="text-xs text-accent-red font-medium">Remove?</span>
+                                            <button
+                                                onClick={(e) => confirmDelete(scan.id, e)}
+                                                className="text-xs bg-accent-red text-white px-2 py-0.5 rounded hover:bg-accent-red/80 transition-colors"
+                                            >
+                                                Yes
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setConfirmDeleteId(null); }}
+                                                className="text-xs bg-surface text-gray-400 px-2 py-0.5 rounded hover:text-white transition-colors"
+                                            >
+                                                No
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setConfirmDeleteId(scan.id); }}
+                                            title="Remove scan from history"
+                                            className="text-xs text-gray-500 hover:text-accent-red p-1 rounded hover:bg-surface-hover transition-colors opacity-70 group-hover:opacity-100"
+                                        >
+                                            🗑️
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                             {scan.status === "completed" && scan.findings && scan.findings.length > 0 && (
-                                <div className="mt-3 flex gap-1.5">
+                                <div className="mt-3 flex gap-1.5 flex-wrap">
                                     {Object.entries(
                                         scan.findings.reduce((acc, f) => {
                                             acc[f.severity] = (acc[f.severity] || 0) + 1;
