@@ -771,13 +771,13 @@ export default function ScanDetailPage() {
 
                     {/* Risk banner */}
                     {(critCount > 0 || highCount > 0) && (
-                        <div className="bg-[#FAECE7] rounded-2xl p-4 flex items-start gap-2">
+                        <div className="bg-[var(--bg-pill-danger)] border border-[var(--text-danger)]/30 rounded-2xl p-4 flex items-start gap-2">
                             <span className="text-lg">🚨</span>
                             <div>
-                                <p className="text-sm font-semibold text-[#993C1D]">
+                                <p className="text-sm font-semibold text-[var(--text-danger)]">
                                     {critCount > 0 ? `${critCount} Critical` : ""}{critCount > 0 && highCount > 0 ? " and " : ""}{highCount > 0 ? `${highCount} High` : ""} severity findings require immediate attention.
                                 </p>
-                                <p className="text-xs text-[#993C1D]/80 mt-0.5">
+                                <p className="text-xs text-[var(--text-danger)]/80 mt-0.5">
                                     These findings represent confirmed SQL injection vulnerabilities with data exfiltration potential.
                                 </p>
                             </div>
@@ -786,10 +786,10 @@ export default function ScanDetailPage() {
 
                     {/* Findings */}
                     {findings.length === 0 ? (
-                        <div className="text-center py-12 bg-white rounded-2xl">
+                        <div className="text-center py-12 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl">
                             <div className="text-3xl mb-2">✅</div>
-                            <p className="text-[#6B7A78]">No SQL injection vulnerabilities detected.</p>
-                            <p className="text-xs mt-1 text-[#8A9694]">This does not guarantee the application is secure — consider a manual review.</p>
+                            <p className="text-[var(--text-secondary)]">No SQL injection vulnerabilities detected.</p>
+                            <p className="text-xs mt-1 text-[var(--text-muted)]">This does not guarantee the application is secure — consider a manual review.</p>
                         </div>
                     ) : (
                         <div className="space-y-4">
