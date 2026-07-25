@@ -164,12 +164,12 @@ function FindingCard({ finding, index }: { finding: SQLiFinding; index: number }
 
             {/* Expanded details */}
             {expanded && (
-                <div className="px-4 pb-4 space-y-3 border-t border-[#E9EDEC] pt-3">
+                <div className="px-4 pb-4 space-y-3 border-t border-[var(--border-subtle)] pt-3">
                     {/* False Positive Reason */}
                     {finding.likelyFalsePositive && finding.falsePositiveReason && (
-                        <div className="bg-[#FAEEDA] rounded-xl p-3">
-                            <p className="text-xs font-semibold text-[#633806] mb-1">⚠️ False Positive Warning</p>
-                            <p className="text-xs text-[#633806]/90 leading-relaxed">{finding.falsePositiveReason}</p>
+                        <div className="bg-[#FAEEDA] dark:bg-amber-950/30 border border-amber-500/20 rounded-xl p-3">
+                            <p className="text-xs font-semibold text-[#633806] dark:text-amber-400 mb-1">⚠️ False Positive Warning</p>
+                            <p className="text-xs text-[#633806]/90 dark:text-amber-300/90 leading-relaxed">{finding.falsePositiveReason}</p>
                         </div>
                     )}
 
@@ -178,17 +178,17 @@ function FindingCard({ finding, index }: { finding: SQLiFinding; index: number }
 
                     {/* AI Explanation */}
                     {finding.aiExplanation && (
-                        <div className="bg-[#F5F7F6] rounded-xl p-3">
-                            <p className="text-xs font-semibold text-[#0F6E56] mb-2">📖 Technical Analysis</p>
-                            <p className="text-xs text-[#6B7A78] leading-relaxed">{finding.aiExplanation}</p>
+                        <div className="bg-[var(--bg-card-subtle)] border border-[var(--border-subtle)] rounded-xl p-3">
+                            <p className="text-xs font-semibold text-[var(--text-accent)] mb-2">📖 Technical Analysis</p>
+                            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{finding.aiExplanation}</p>
                         </div>
                     )}
 
                     {/* Raw snippet */}
                     {finding.rawResponseSnippet && (
                         <div>
-                            <span className="text-xs text-[#8A9694] block mb-1">Response Snippet (first 400 chars)</span>
-                            <pre className="text-xs text-[#6B7A78] bg-[#F5F7F6] rounded-xl p-3 overflow-x-auto max-h-24 font-mono whitespace-pre-wrap border-0">
+                            <span className="text-xs text-[var(--text-muted)] block mb-1">Response Snippet (first 400 chars)</span>
+                            <pre className="text-xs text-[var(--text-secondary)] bg-[var(--bg-card-subtle)] rounded-xl p-3 overflow-x-auto max-h-24 font-mono whitespace-pre-wrap border-0">
                                 {finding.rawResponseSnippet}
                             </pre>
                         </div>
@@ -196,9 +196,9 @@ function FindingCard({ finding, index }: { finding: SQLiFinding; index: number }
 
                     {/* Remediation */}
                     {finding.remediationSteps && finding.remediationSteps.length > 0 && (
-                        <div className="bg-[#E1F5EE] rounded-xl p-3">
-                            <p className="text-xs font-semibold text-[#085041] mb-2">🛡️ Remediation Steps</p>
-                            <ol className="text-xs text-[#085041] space-y-1.5 list-none">
+                        <div className="bg-[var(--bg-pill-accent)] border border-[var(--accent-primary)]/20 rounded-xl p-3">
+                            <p className="text-xs font-semibold text-[var(--text-accent)] mb-2">🛡️ Remediation Steps</p>
+                            <ol className="text-xs text-[var(--text-accent)] space-y-1.5 list-none">
                                 {finding.remediationSteps.map((step, si) => (
                                     <li key={si} className="leading-relaxed">{step}</li>
                                 ))}
@@ -209,12 +209,12 @@ function FindingCard({ finding, index }: { finding: SQLiFinding; index: number }
                     {/* References */}
                     {finding.references && finding.references.length > 0 && (
                         <div>
-                            <span className="text-xs text-[#8A9694] block mb-1">References</span>
+                            <span className="text-xs text-[var(--text-muted)] block mb-1">References</span>
                             <ul className="text-xs space-y-0.5">
                                 {finding.references.map((ref, ri) => (
                                     <li key={ri}>
                                         <a href={ref} target="_blank" rel="noopener noreferrer"
-                                            className="text-[#0F6E56] hover:underline">
+                                            className="text-[var(--text-accent)] hover:underline font-medium">
                                             {ref}
                                         </a>
                                     </li>
@@ -553,9 +553,9 @@ export default function ScanDetailPage() {
                             <button
                                 onClick={handleStopScan}
                                 disabled={stopping}
-                                className="text-xs bg-[#D9381E] text-white hover:bg-[#B92B14] px-4 py-2 rounded-full transition-all font-semibold flex items-center gap-2 shadow-sm disabled:opacity-50"
+                                className="text-xs bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30 hover:bg-red-500/25 px-4 py-2 rounded-full transition-all font-semibold flex items-center gap-2 shadow-sm disabled:opacity-50"
                             >
-                                <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
+                                <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
                                 {stopping ? "Stopping..." : "Stop Scan"}
                             </button>
                         </>
