@@ -42,7 +42,12 @@ function normalizeScanResult(data: any): ScanResult {
     if (!data) return data;
     return {
         ...data,
-        target: data.target ?? data.target_url ?? "",
+        id: data.id ?? data.scan_id ?? data.scanId ?? "",
+        target: data.target ?? data.target_url ?? data.targetUrl ?? "",
+        status: data.status ?? "idle",
+        progress: data.progress ?? 0,
+        currentPhase: data.currentPhase ?? data.current_phase ?? "",
+        duration: data.duration ?? data.duration_seconds ?? 0,
         findings: (data.findings || []).map(normalizeFinding),
     };
 }

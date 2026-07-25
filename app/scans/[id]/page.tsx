@@ -262,6 +262,12 @@ function normalizeScanResult(data: any): ScanResult {
     if (!data) return data;
     return {
         ...data,
+        id: data.id ?? data.scan_id ?? data.scanId ?? "",
+        target: data.target ?? data.target_url ?? data.targetUrl ?? "",
+        status: data.status ?? "idle",
+        progress: data.progress ?? 0,
+        currentPhase: data.currentPhase ?? data.current_phase ?? "",
+        duration: data.duration ?? data.duration_seconds ?? 0,
         findings: (data.findings || []).map(normalizeFinding),
     };
 }
@@ -276,6 +282,10 @@ export default function ScanDetailPage() {
     const [stopping, setStopping] = useState(false);
     const retryCountRef = useRef(0);
     const lastProgressRef = useRef<{ progress: number; time: number } | null>(null);
+
+    useEffect(() => {
+        console.log(`[SQLi-PREDATOR] ScanDetailPage mounted for ID: "${id}"`);
+    }, [id]);
 
     const handleStopScan = async () => {
         if (!id || stopping) return;
