@@ -309,6 +309,58 @@ export default function ScanDetailPage() {
                 const item = localStorage.getItem(`sqli_scan_${id}`);
                 if (item) return normalizeScanResult(JSON.parse(item));
             } catch { }
+
+            try {
+                const listRaw = localStorage.getItem("sqli_predator_scans");
+                if (listRaw) {
+                    const list: ScanResult[] = JSON.parse(listRaw);
+                    const found = list.find((s) => s.id === id);
+                    if (found) return normalizeScanResult(found);
+                }
+            } catch { }
+
+            return null;
+        };
+
+        const fetchScanData = async (): Promise<{ statusResp: Response | null; data: any | null }> => {
+            // 1. Try Render API backend
+            try {
+                const renderResp = await fetch(`https://sqli-predator-api.onrender.com/api/scan/${id}/status`);
+                if (renderResp.ok) {
+                    const data = await renderResp.json();
+                    return { statusResp: renderResp, data };
+                }
+            } catch { }
+
+            // 2. Fallback to local Vercel API route
+            try {
+                const localResp = await fetch(`/api/scan/status/${id}`);
+                if (localResp.ok) {
+                    const data = await localResp.json();
+                    return { statusResp: localResp, data };
+                }
+            } catch { }
+
+            return { statusResp: null, data: null };
+        };
+
+        const fetchReportData = async (): Promise<any | null> => {
+            // 1. Try Render API report
+            try {
+                const renderReportResp = await fetch(`https://sqli-predator-api.onrender.com/api/scan/${id}/report`);
+                if (renderReportResp.ok) {
+                    return await renderReportResp.json();
+                }
+            } catch { }
+
+            // 2. Fallback to local Vercel API report
+            try {
+                const localReportResp = await fetch(`/api/report/${id}`);
+                if (localReportResp.ok) {
+                    return await localReportResp.json();
+                }
+            } catch { }
+
             return null;
         };
 
@@ -316,10 +368,9 @@ export default function ScanDetailPage() {
             if (!isMounted) return;
 
             try {
-                const resp = await fetch(`https://sqli-predator-api.onrender.com/api/scan/${id}/status`);
-                if (!resp.ok) {
-                    // On Render, the scan may take a moment to appear in the database after creation.
-                    // Use exponential backoff up to 15 retries (covers ~60s of cold-start delay).
+                const { statusResp, data } = await fetchScanData();
+
+                if (!statusResp || !data) {
                     if (retryCountRef.current < 15) {
                         retryCountRef.current++;
                         const delay = Math.min(1000 * Math.pow(1.3, retryCountRef.current), 8000);
@@ -331,7 +382,7 @@ export default function ScanDetailPage() {
                         setScan(local);
                     } else if (isMounted) {
                         setPollError(
-                            "Unable to reach the scan server. The scan may have been lost due to a serverless timeout. " +
+                            "Unable to reach the scan server. The scan may have timed out or expired. " +
                             "Please try starting a new scan."
                         );
                     }
@@ -339,14 +390,11 @@ export default function ScanDetailPage() {
                     return;
                 }
 
-                // Reset retry counter on successful response
                 retryCountRef.current = 0;
                 if (isMounted) setPollError(null);
 
-                const data = await resp.json();
                 const normalizedData = normalizeScanResult(data);
 
-                // Stall detection: if progress hasn't changed in 90 seconds, warn
                 if (data.status === "running") {
                     const now = Date.now();
                     const progress = data.progress || 0;
@@ -366,16 +414,14 @@ export default function ScanDetailPage() {
 
                 if (data.status === "completed" || data.status === "failed" || data.status === "stopped") {
                     if (data.status === "completed") {
-                        const reportResp = await fetch(`https://sqli-predator-api.onrender.com/api/scan/${id}/report`);
-                        if (reportResp.ok) {
-                            const rawReport = await reportResp.json();
+                        const rawReport = await fetchReportData();
+                        if (rawReport) {
                             const report: ScanResult = normalizeScanResult(rawReport);
                             if (isMounted) { setScan(report); saveToLocal(report); }
                         } else {
                             if (isMounted) setScan(normalizedData);
                         }
                     } else {
-                        // Failed or stopped scan — show state from backend
                         if (isMounted) setScan(normalizedData);
                     }
                     if (isMounted) setLoading(false);
