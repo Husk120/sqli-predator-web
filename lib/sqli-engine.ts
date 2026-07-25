@@ -120,11 +120,13 @@ export const SQL_ERROR_SIGNATURES: ErrorSignature[] = [
     { pattern: "db2 sql error:", weight: 3, dbType: "db2" },
 ];
 
-export function checkErrorSignatures(body: string): {
+export function checkErrorSignatures(body: string, payload?: string): {
     found: boolean;
     signatures: string[];
     dbHint: string;
     totalWeight: number;
+    likelyFalsePositive: boolean;
+    falsePositiveReason?: string;
 } {
     const foundSigs: string[] = [];
     let dbHint = "unknown";
@@ -152,7 +154,32 @@ export function checkErrorSignatures(body: string): {
     // Require minimum total signature weight >= 2 to prevent single-word false positives
     const found = totalWeight >= 2;
 
-    return { found, signatures: foundSigs, dbHint, totalWeight };
+    let likelyFalsePositive = false;
+    let falsePositiveReason;
+
+    if (found && payload) {
+        const lowerPayload = payload.toLowerCase();
+        const payloadSigs = foundSigs.filter(sig => lowerPayload.includes(sig.toLowerCase()));
+        
+        if (payloadSigs.length > 0) {
+            for (const sig of payloadSigs) {
+                const lowerSig = sig.toLowerCase();
+                const sigIndexInPayload = lowerPayload.indexOf(lowerSig);
+                
+                const start = Math.max(0, sigIndexInPayload - 10);
+                const end = Math.min(lowerPayload.length, sigIndexInPayload + lowerSig.length + 10);
+                const payloadSnippet = lowerPayload.slice(start, end);
+                
+                if (lower.includes(payloadSnippet)) {
+                    likelyFalsePositive = true;
+                    falsePositiveReason = "Payload appears reflected in response near matched signature — may be echoed search input rather than a genuine database error";
+                    break;
+                }
+            }
+        }
+    }
+
+    return { found, signatures: foundSigs, dbHint, totalWeight, likelyFalsePositive, falsePositiveReason };
 }
 
 // ─── Payload Registry ───
@@ -348,6 +375,7 @@ export function scoreConfidence(opts: {
     baselineStatus: number;
     signatures: string[];
     dbHint: string;
+    likelyFalsePositive?: boolean;
 }): number {
     let score = 0.0;
 
@@ -387,7 +415,13 @@ export function scoreConfidence(opts: {
     if (opts.signatures.length >= 5) score += 0.10;
     else if (opts.signatures.length >= 3) score += 0.05;
 
-    return Math.min(score, 1.0);
+    score = Math.min(score, 1.0);
+
+    if (opts.likelyFalsePositive) {
+        score *= 0.3; // Significantly reduce confidence for likely false positives
+    }
+
+    return score;
 }
 
 // ─── Classification & Reporting ───
@@ -1059,6 +1093,8 @@ export async function runScan(
         testTime: number;
         rawResponseSnippet: string;
         formData?: Record<string, string>;
+        likelyFalsePositive?: boolean;
+        falsePositiveReason?: string;
     }): SQLiFinding {
         const cvssScore = CVSS_BASE_SCORES[opts.detectionMethod] || 4.5;
         const severity = calculateSeverity(cvssScore);
@@ -1125,6 +1161,8 @@ export async function runScan(
             cweId: CWE_MAP[opts.detectionMethod] || "CWE-89",
             owaspCategory: OWASP_CATEGORY,
             references: REFERENCES,
+            likelyFalsePositive: opts.likelyFalsePositive,
+            falsePositiveReason: opts.falsePositiveReason,
         };
     }
 
@@ -1258,7 +1296,7 @@ export async function runScan(
                         const elapsed = (performance.now() - start) / 1000;
                         const text = await resp.text();
 
-                        const { found: hasErrors, signatures, dbHint, totalWeight: errorWeight } = checkErrorSignatures(text);
+                        const { found: hasErrors, signatures, dbHint, totalWeight: errorWeight, likelyFalsePositive, falsePositiveReason } = checkErrorSignatures(text, payload.value);
                         const contentDiff = baseline ? (Math.abs(text.length - baseline.length) / (baseline.length || 1)) * 100 : 0;
                         const statusChanged = baseline ? (resp.status >= 500 && baseline.status < 400) : false;
 
@@ -1293,6 +1331,7 @@ export async function runScan(
                             baselineStatus: baseline?.status || 200,
                             signatures,
                             dbHint,
+                            likelyFalsePositive,
                         });
 
                         // Minimum confidence thresholds per method
@@ -1324,6 +1363,7 @@ export async function runScan(
                             contentDiff, baselineLength: baseline?.length || 0, testLength: text.length,
                             baselineTime: baseline?.mean || 0, testTime: elapsed,
                             rawResponseSnippet: text.slice(0, 400), formData,
+                            likelyFalsePositive, falsePositiveReason
                         });
 
                         allFindings.push(finding);

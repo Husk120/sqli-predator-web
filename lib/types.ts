@@ -117,6 +117,8 @@ export interface SQLiFinding {
     vulnerabilityClass: string;
     rawResponseSnippet: string;
     pocRequest: string;
+    likelyFalsePositive?: boolean;
+    falsePositiveReason?: string;
 
     // Classification
     cweId: string;

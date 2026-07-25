@@ -84,6 +84,8 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
         testTime: number;
         rawResponseSnippet: string;
         formData?: Record<string, string>;
+        likelyFalsePositive?: boolean;
+        falsePositiveReason?: string;
     }): SQLiFinding {
         const cvssScore = (opts.detectionMethod in {
             OOB_DNS: 1, OOB_HTTP: 1, UNION_PROBE: 1, STACKED_QUERY: 1,
@@ -144,6 +146,8 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                 "https://owasp.org/www-community/attacks/SQL_Injection",
                 "https://cwe.mitre.org/data/definitions/89.html"
             ],
+            likelyFalsePositive: opts.likelyFalsePositive,
+            falsePositiveReason: opts.falsePositiveReason,
         };
     }
 
@@ -325,7 +329,7 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                                 const elapsed = (performance.now() - start) / 1000;
                                 const text = await resp.text();
 
-                                const { found: hasErrors, signatures, dbHint, totalWeight: errorWeight } = checkErrorSignatures(text);
+                                const { found: hasErrors, signatures, dbHint, totalWeight: errorWeight, likelyFalsePositive, falsePositiveReason } = checkErrorSignatures(text, payload.value);
                                 const contentDiff = baseline ? (Math.abs(text.length - baseline.length) / (baseline.length || 1)) * 100 : 0;
                                 const zScore = baseline ? computeZScore(elapsed, baseline.mean, baseline.stddev) : 0;
                                 const isTimeBased = payload.category === "time_based" && elapsed > config.timeThreshold && zScore >= 2.5;
@@ -343,7 +347,7 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                                     const confidence = scoreConfidence({
                                         hasErrors, errorWeight, timeDelay: isTimeBased, timingZScore: zScore,
                                         oobId: "", booleanConfirmed: false, contentDiff,
-                                        testStatus: resp.status, baselineStatus: baseline?.status || 200, signatures, dbHint
+                                        testStatus: resp.status, baselineStatus: baseline?.status || 200, signatures, dbHint, likelyFalsePositive
                                     });
 
                                     if (confidence >= 0.25) {
@@ -354,7 +358,7 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                                             timeDelayDetected: isTimeBased, timeDelaySeconds: elapsed, timingZScore: zScore, timingPValue: 0.05,
                                             isBooleanPositive: null, oobInteractionId: "", contentDiff, baselineLength: baseline?.length || 0,
                                             testLength: text.length, baselineTime: baseline?.mean || 0, testTime: elapsed,
-                                            rawResponseSnippet: text, formData
+                                            rawResponseSnippet: text, formData, likelyFalsePositive, falsePositiveReason
                                         }));
                                     }
                                 }
@@ -488,7 +492,7 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                             const elapsed = (performance.now() - start) / 1000;
                             const text = await resp.text();
 
-                            const { found: hasErrors, signatures, dbHint, totalWeight: errorWeight } = checkErrorSignatures(text);
+                            const { found: hasErrors, signatures, dbHint, totalWeight: errorWeight, likelyFalsePositive, falsePositiveReason } = checkErrorSignatures(text, payload.value);
                             const contentDiff = baseline ? (Math.abs(text.length - baseline.length) / (baseline.length || 1)) * 100 : 0;
                             const zScore = baseline ? computeZScore(elapsed, baseline.mean, baseline.stddev) : 0;
                             const isTimeBased = payload.category === "time_based" && elapsed > config.timeThreshold && zScore >= 2.5;
@@ -503,7 +507,7 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                                 const confidence = scoreConfidence({
                                     hasErrors, errorWeight, timeDelay: isTimeBased, timingZScore: zScore,
                                     oobId: "", booleanConfirmed: false, contentDiff,
-                                    testStatus: resp.status, baselineStatus: baseline?.status || 200, signatures, dbHint
+                                    testStatus: resp.status, baselineStatus: baseline?.status || 200, signatures, dbHint, likelyFalsePositive
                                 });
 
                                 if (confidence >= 0.25) {
@@ -514,7 +518,7 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                                         timeDelayDetected: isTimeBased, timeDelaySeconds: elapsed, timingZScore: zScore, timingPValue: 0.05,
                                         isBooleanPositive: null, oobInteractionId: "", contentDiff, baselineLength: baseline?.length || 0,
                                         testLength: text.length, baselineTime: baseline?.mean || 0, testTime: elapsed,
-                                        rawResponseSnippet: text
+                                        rawResponseSnippet: text, likelyFalsePositive, falsePositiveReason
                                     }));
                                 }
                             }
@@ -573,15 +577,19 @@ export async function executeChunk(scanId: string): Promise<{ done: boolean }> {
                             const resp = await fetch(config.targetUrl, { headers: testHeaders, redirect: "follow", signal: AbortSignal.timeout(8000) });
                             const elapsed = (performance.now() - start) / 1000;
                             const text = await resp.text();
-                            const { found: hasErrors, signatures, dbHint } = checkErrorSignatures(text);
+                            const { found: hasErrors, signatures, dbHint, likelyFalsePositive, falsePositiveReason } = checkErrorSignatures(text, payload.value);
                             if (hasErrors) {
+                                let confidence = 0.8;
+                                if (likelyFalsePositive) confidence *= 0.3;
+                                
                                 state.findings.push(createFinding({
                                     url: config.targetUrl, parameter: headerName, method: "GET",
                                     attackSurface: "header", detectionMethod: "ERROR_BASED", payload, bypass: BypassTechnique.NONE,
-                                    dbHint, confidence: 0.8, hasSqlErrors: true, errorSignatures: signatures, errorWeight: 3,
+                                    dbHint, confidence, hasSqlErrors: true, errorSignatures: signatures, errorWeight: 3,
                                     timeDelayDetected: false, timeDelaySeconds: elapsed, timingZScore: 0, timingPValue: 0.05,
                                     isBooleanPositive: null, oobInteractionId: "", contentDiff: 0, baselineLength: 0,
-                                    testLength: text.length, baselineTime: 0, testTime: elapsed, rawResponseSnippet: text
+                                    testLength: text.length, baselineTime: 0, testTime: elapsed, rawResponseSnippet: text,
+                                    likelyFalsePositive, falsePositiveReason
                                 }));
                             }
                         } catch (e) {

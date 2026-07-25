@@ -33,10 +33,10 @@ function FindingCard({ finding, index }: { finding: SQLiFinding; index: number }
     const confColor = CONFIDENCE_COLORS[(finding.confidenceLevel || "Tentative") as ConfidenceLevel] || "#6c757d";
 
     return (
-        <div className="finding-card overflow-hidden">
+        <div className={`finding-card overflow-hidden ${finding.likelyFalsePositive ? 'opacity-80' : ''}`}>
             {/* Card Header */}
             <div
-                className="flex items-center gap-2 p-3 border-b border-surface-border flex-wrap cursor-pointer hover:bg-surface-hover/30 transition-colors"
+                className={`flex items-center gap-2 p-3 flex-wrap cursor-pointer hover:bg-surface-hover/30 transition-colors border-b ${finding.likelyFalsePositive ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-surface-border'}`}
                 onClick={() => setExpanded(!expanded)}
             >
                 <span
@@ -57,6 +57,11 @@ function FindingCard({ finding, index }: { finding: SQLiFinding; index: number }
                 >
                     {finding.confidenceLevel || "Tentative"} Confidence ({Math.round((finding.confidence || 0) * 100)}%)
                 </span>
+                {finding.likelyFalsePositive && (
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-yellow-500/20 text-yellow-500 border border-yellow-500/30">
+                        ⚠️ Likely False Positive
+                    </span>
+                )}
                 <span className="text-xs text-gray-600 ml-auto">{expanded ? "▲ collapse" : "▼ expand"}</span>
             </div>
 
@@ -156,6 +161,14 @@ function FindingCard({ finding, index }: { finding: SQLiFinding; index: number }
             {/* Expanded details */}
             {expanded && (
                 <div className="px-3 pb-3 space-y-3 border-t border-surface-border pt-3">
+                    {/* False Positive Reason */}
+                    {finding.likelyFalsePositive && finding.falsePositiveReason && (
+                        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                            <p className="text-xs font-semibold text-yellow-500 mb-1">⚠️ False Positive Warning</p>
+                            <p className="text-xs text-gray-400 leading-relaxed">{finding.falsePositiveReason}</p>
+                        </div>
+                    )}
+
                     {/* PoC */}
                     {finding.pocRequest && <PocBlock poc={finding.pocRequest} />}
 
