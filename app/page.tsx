@@ -96,42 +96,52 @@ export default function HomePage() {
                 <div className="lg:col-span-5 space-y-5">
                     {/* Radar Centerpiece */}
                     <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-subtle)] relative overflow-hidden shadow-sm flex flex-col items-center justify-center text-center">
-                        <div className="text-xs font-mono font-semibold tracking-widest text-[var(--text-secondary)] uppercase mb-4 flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-[var(--accent-primary)] animate-pulse inline-block"></span>
-                            TARGET RADAR // ACTIVE
+                        {/* Header & Status Subtitle */}
+                        <div className="flex flex-col items-center gap-1 mb-3">
+                            <div className="text-xs font-mono font-semibold tracking-widest text-[var(--text-primary)] uppercase flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-[var(--accent-primary)] animate-pulse inline-block"></span>
+                                TARGET RADAR // ACTIVE
+                            </div>
+                            <div className="text-[11px] text-[var(--text-secondary)] font-mono">
+                                VECTOR SCANNING: <span className="text-[var(--accent-primary)] font-semibold">READY</span>
+                            </div>
                         </div>
 
                         {/* Pure SVG Radar Graphic */}
                         <div className="relative w-48 h-48 my-2 flex items-center justify-center">
                             <svg className="w-full h-full" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 {/* Outer border circle */}
-                                <circle cx="100" cy="100" r="95" stroke="var(--border-subtle)" strokeWidth="1.5" />
-                                {/* Concentric circles */}
-                                <circle cx="100" cy="100" r="75" stroke="var(--accent-primary)" strokeWidth="1" strokeOpacity="0.25" strokeDasharray="4 4" />
-                                <circle cx="100" cy="100" r="50" stroke="var(--accent-primary)" strokeWidth="1" strokeOpacity="0.35" />
-                                <circle cx="100" cy="100" r="25" stroke="var(--accent-primary)" strokeWidth="1" strokeOpacity="0.45" strokeDasharray="2 2" />
-                                <circle cx="100" cy="100" r="4" fill="var(--accent-primary)" />
+                                <circle cx="100" cy="100" r="95" stroke="var(--border-subtle)" strokeWidth="2" />
+                                
+                                {/* Concentric circles with increased visibility */}
+                                <circle cx="100" cy="100" r="75" stroke="var(--accent-primary)" strokeWidth="1.5" strokeOpacity="0.6" strokeDasharray="4 4" />
+                                <circle cx="100" cy="100" r="50" stroke="var(--accent-primary)" strokeWidth="1.5" strokeOpacity="0.7" />
+                                <circle cx="100" cy="100" r="25" stroke="var(--accent-primary)" strokeWidth="1.5" strokeOpacity="0.8" strokeDasharray="3 3" />
+                                <circle cx="100" cy="100" r="5" fill="var(--accent-primary)" />
 
                                 {/* Crosshair lines */}
-                                <line x1="100" y1="5" x2="100" y2="195" stroke="var(--accent-primary)" strokeWidth="1" strokeOpacity="0.3" />
-                                <line x1="5" y1="100" x2="195" y2="100" stroke="var(--accent-primary)" strokeWidth="1" strokeOpacity="0.3" />
-                                <line x1="30" y1="30" x2="170" y2="170" stroke="var(--accent-primary)" strokeWidth="0.5" strokeOpacity="0.15" />
-                                <line x1="170" y1="30" x2="30" y2="170" stroke="var(--accent-primary)" strokeWidth="0.5" strokeOpacity="0.15" />
+                                <line x1="100" y1="5" x2="100" y2="195" stroke="var(--accent-primary)" strokeWidth="1" strokeOpacity="0.5" />
+                                <line x1="5" y1="100" x2="195" y2="100" stroke="var(--accent-primary)" strokeWidth="1" strokeOpacity="0.5" />
+                                <line x1="30" y1="30" x2="170" y2="170" stroke="var(--accent-primary)" strokeWidth="0.75" strokeOpacity="0.3" />
+                                <line x1="170" y1="30" x2="30" y2="170" stroke="var(--accent-primary)" strokeWidth="0.75" strokeOpacity="0.3" />
 
-                                {/* Detected Indicators (Colored Dots) */}
-                                <g className="animate-pulse">
-                                    <circle cx="135" cy="65" r="5" fill="var(--accent-primary)" />
-                                    <circle cx="135" cy="65" r="9" stroke="var(--accent-primary)" strokeWidth="1" strokeOpacity="0.5" />
-                                </g>
-                                <g className="animate-pulse" style={{ animationDelay: "700ms" }}>
-                                    <circle cx="70" cy="140" r="4" fill="currentColor" className="text-accent-orange" />
-                                    <circle cx="70" cy="140" r="8" stroke="currentColor" strokeWidth="1" strokeOpacity="0.5" className="text-accent-orange" />
+                                {/* Rotating Scanning Sweep & Dots */}
+                                <g className="animate-[spin_10s_linear_infinite]" style={{ transformOrigin: "100px 100px" }}>
+                                    {/* Sweeping line */}
+                                    <line x1="100" y1="100" x2="170" y2="30" stroke="var(--accent-primary)" strokeWidth="1.5" strokeOpacity="0.7" />
+                                    
+                                    {/* Detected Indicator 1 */}
+                                    <g className="animate-pulse">
+                                        <circle cx="145" cy="55" r="5" fill="var(--accent-primary)" />
+                                        <circle cx="145" cy="55" r="9" stroke="var(--accent-primary)" strokeWidth="1.5" strokeOpacity="0.8" />
+                                    </g>
+                                    {/* Detected Indicator 2 */}
+                                    <g className="animate-pulse" style={{ animationDelay: "600ms" }}>
+                                        <circle cx="60" cy="145" r="4.5" fill="currentColor" className="text-accent-orange" />
+                                        <circle cx="60" cy="145" r="8.5" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.8" className="text-accent-orange" />
+                                    </g>
                                 </g>
                             </svg>
-                        </div>
-
-                        <div className="text-[11px] text-[var(--text-secondary)] font-mono mt-2">
-                            VECTOR SCANNING: <span className="text-[var(--text-primary)] font-medium">READY</span>
                         </div>
                     </div>
 
@@ -159,8 +169,8 @@ export default function HomePage() {
                         </div>
                     </div>
 
-                    {/* Compact Badges Panel */}
-                    <div className="bg-[var(--bg-card)] rounded-xl p-4 border border-[var(--border-subtle)] shadow-sm">
+                    {/* Compact Badges Panel - Distinct Background */}
+                    <div className="bg-[var(--bg-card-subtle)] rounded-xl p-4 border border-[var(--border-subtle)] shadow-sm">
                         <div className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-2.5 font-mono">
                             Active Modules
                         </div>
