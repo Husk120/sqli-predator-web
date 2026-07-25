@@ -75,37 +75,37 @@ export default function HomePage() {
         <div className="space-y-8">
             {/* Hero */}
             <div className="text-center py-8">
-                <h1 className="text-4xl font-bold text-white mb-3">
-                    🦅 SQLi-<span className="text-accent-blue">PREDATOR</span>
+                <h1 className="text-4xl font-bold text-[#16231F] mb-3">
+                    🦅 SQLi-<span className="text-[#0F6E56]">PREDATOR</span>
                 </h1>
-                <p className="text-gray-400 max-w-2xl mx-auto">
+                <p className="text-[#6B7A78] max-w-2xl mx-auto">
                     Advanced SQL Injection Detection Engine — Multi-Vector, Polymorphic,
                     OOB & Statistical Analysis. <strong className="text-accent-orange">Authorized use only.</strong>
                 </p>
                 <div className="flex gap-2 justify-center mt-4 flex-wrap">
-                    <span className="text-xs bg-surface-card border border-surface-border px-2 py-1 rounded-full text-gray-400">
+                    <span className="text-xs bg-[#E9EDEC] text-[#6B7A78] px-2.5 py-1 rounded-full">
                         ⚠️ Error-Based
                     </span>
-                    <span className="text-xs bg-surface-card border border-surface-border px-2 py-1 rounded-full text-gray-400">
+                    <span className="text-xs bg-[#E9EDEC] text-[#6B7A78] px-2.5 py-1 rounded-full">
                         🔍 Boolean Blind
                     </span>
-                    <span className="text-xs bg-surface-card border border-surface-border px-2 py-1 rounded-full text-gray-400">
+                    <span className="text-xs bg-[#E9EDEC] text-[#6B7A78] px-2.5 py-1 rounded-full">
                         ⏱️ Time-Based (Statistical)
                     </span>
-                    <span className="text-xs bg-surface-card border border-surface-border px-2 py-1 rounded-full text-gray-400">
+                    <span className="text-xs bg-[#E9EDEC] text-[#6B7A78] px-2.5 py-1 rounded-full">
                         🔗 UNION Probe
                     </span>
-                    <span className="text-xs bg-surface-card border border-surface-border px-2 py-1 rounded-full text-gray-400">
+                    <span className="text-xs bg-[#E9EDEC] text-[#6B7A78] px-2.5 py-1 rounded-full">
                         🌐 OOB DNS/HTTP
                     </span>
-                    <span className="text-xs bg-surface-card border border-surface-border px-2 py-1 rounded-full text-gray-400">
+                    <span className="text-xs bg-[#E9EDEC] text-[#6B7A78] px-2.5 py-1 rounded-full">
                         🔄 Second-Order
                     </span>
                 </div>
             </div>
 
             {/* Auth Warning */}
-            <div className="border border-accent-orange/30 bg-accent-orange/5 rounded-lg p-4 max-w-3xl mx-auto">
+            <div className="border border-accent-orange/30 bg-accent-orange/5 rounded-2xl p-4 max-w-3xl mx-auto">
                 <p className="text-sm text-accent-orange flex items-center gap-2">
                     <span>⚠️</span>
                     <span>
@@ -121,7 +121,7 @@ export default function HomePage() {
                 <ScanForm onStart={handleStartScan} scanning={scanning} />
 
                 {error && (
-                    <div className="mt-4 p-3 bg-accent-red/10 border border-accent-red/30 rounded-lg">
+                    <div className="mt-4 p-3 bg-accent-red/10 border border-accent-red/30 rounded-xl">
                         <p className="text-accent-red text-sm">{error}</p>
                     </div>
                 )}
@@ -129,21 +129,21 @@ export default function HomePage() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
-                <div className="bg-surface-card border border-surface-border rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-accent-blue">460+</div>
-                    <div className="text-xs text-gray-500 mt-1">Base Payloads</div>
+                <div className="bg-white rounded-2xl p-4 text-center">
+                    <div className="text-2xl font-bold text-[#0F6E56]">460+</div>
+                    <div className="text-xs text-[#6B7A78] mt-1">Base Payloads</div>
                 </div>
-                <div className="bg-surface-card border border-surface-border rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-accent-green">8</div>
-                    <div className="text-xs text-gray-500 mt-1">Detection Methods</div>
+                <div className="bg-white rounded-2xl p-4 text-center">
+                    <div className="text-2xl font-bold text-[#0F6E56]">8</div>
+                    <div className="text-xs text-[#6B7A78] mt-1">Detection Methods</div>
                 </div>
-                <div className="bg-surface-card border border-surface-border rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-accent-purple">7</div>
-                    <div className="text-xs text-gray-500 mt-1">Injection Vectors</div>
+                <div className="bg-white rounded-2xl p-4 text-center">
+                    <div className="text-2xl font-bold text-[#0F6E56]">7</div>
+                    <div className="text-xs text-[#6B7A78] mt-1">Injection Vectors</div>
                 </div>
-                <div className="bg-surface-card border border-surface-border rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-accent-orange">∞</div>
-                    <div className="text-xs text-gray-500 mt-1">Polymorphic Variants</div>
+                <div className="bg-white rounded-2xl p-4 text-center">
+                    <div className="text-2xl font-bold text-[#0F6E56]">∞</div>
+                    <div className="text-xs text-[#6B7A78] mt-1">Polymorphic Variants</div>
                 </div>
             </div>
         </div>

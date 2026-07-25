@@ -178,8 +178,8 @@ export default function ScansPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Scan History</h1>
-                    <p className="text-xs text-gray-500 mt-0.5">Local scan traces and saved reports</p>
+                    <h1 className="text-2xl font-bold text-[#16231F]">Scan History</h1>
+                    <p className="text-xs text-[#6B7A78] mt-0.5">Local scan traces and saved reports</p>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -204,7 +204,7 @@ export default function ScansPage() {
                             ) : (
                                 <button
                                     onClick={() => setConfirmClearAll(true)}
-                                    className="text-xs text-gray-400 hover:text-accent-red border border-surface-border hover:border-accent-red/40 px-3 py-1.5 rounded-lg transition-colors font-medium flex items-center gap-1.5"
+                                    className="text-xs text-[#6B7A78] hover:text-accent-red border border-[#E9EDEC] hover:border-accent-red/40 px-3 py-1.5 rounded-full transition-colors font-medium flex items-center gap-1.5"
                                 >
                                     🗑️ Clear All History
                                 </button>
@@ -214,7 +214,7 @@ export default function ScansPage() {
 
                     <Link
                         href="/"
-                        className="text-sm bg-accent-blue text-white px-4 py-2 rounded-lg hover:bg-accent-blue/80 transition-colors"
+                        className="text-sm bg-[#0F6E56] text-white px-4 py-2 rounded-full hover:bg-[#0F6E56]/90 transition-colors font-medium"
                     >
                         + New Scan
                     </Link>
@@ -222,14 +222,14 @@ export default function ScansPage() {
             </div>
 
             {loading ? (
-                <div className="text-center py-12 text-gray-500">Loading scans...</div>
+                <div className="text-center py-12 text-[#6B7A78]">Loading scans...</div>
             ) : scans.length === 0 ? (
-                <div className="text-center py-12 border border-dashed border-surface-border rounded-xl">
+                <div className="text-center py-12 bg-white rounded-2xl">
                     <div className="text-4xl mb-3">🦅</div>
-                    <p className="text-gray-500">No scans in history.</p>
+                    <p className="text-[#6B7A78]">No scans in history.</p>
                     <Link
                         href="/"
-                        className="inline-block mt-3 text-sm text-accent-blue hover:underline"
+                        className="inline-block mt-3 text-sm text-[#0F6E56] hover:underline"
                     >
                         Start your first scan →
                     </Link>
@@ -240,13 +240,13 @@ export default function ScansPage() {
                         <Link
                             key={scan.id}
                             href={`/scans/${scan.id}`}
-                            className="block bg-surface-card border border-surface-border rounded-lg p-4 hover:border-gray-600 transition-colors relative group"
+                            className="block bg-white rounded-2xl p-4 hover:shadow-sm transition-all relative group"
                         >
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-white">{scan.target}</p>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        {new Date(scan.timestamp).toLocaleString()} · {scan.findings?.length || 0} findings · ID: <code className="text-gray-400 font-mono">{scan.id}</code>
+                                    <p className="text-sm font-medium text-[#16231F]">{scan.target}</p>
+                                    <p className="text-xs text-[#6B7A78] mt-1">
+                                        {new Date(scan.timestamp).toLocaleString()} · {scan.findings?.length || 0} findings · ID: <code className="bg-[#E1F5EE] text-[#085041] px-1.5 py-0.5 rounded font-mono text-xs">{scan.id}</code>
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-3">

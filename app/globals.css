@@ -79,11 +79,11 @@ body {
 
 /* Code blocks */
 code {
-    background: #161b22;
+    background: #E1F5EE;
+    color: #085041;
     padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 13px;
-    color: #f0c674;
+    border-radius: 999px;
+    font-size: 12px;
 }
 
 pre {
