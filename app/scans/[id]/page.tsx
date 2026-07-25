@@ -549,9 +549,9 @@ export default function ScanDetailPage() {
                             <button
                                 onClick={handleStopScan}
                                 disabled={stopping}
-                                className="text-xs bg-accent-red/10 text-accent-red hover:bg-accent-red/20 border border-accent-red/40 px-3.5 py-2 rounded-lg transition-all font-medium flex items-center gap-2 shadow-sm hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+                                className="text-xs bg-accent-red text-white hover:bg-accent-red/80 px-4 py-2 rounded-lg transition-all font-semibold flex items-center gap-2 disabled:opacity-50"
                             >
-                                <span className="h-2 w-2 rounded-full bg-accent-red" />
+                                <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
                                 {stopping ? "Stopping..." : "Stop Scan"}
                             </button>
                         </>

@@ -40,10 +40,17 @@ function normalizeFinding(f: any) {
 
 function normalizeScanResult(data: any): ScanResult {
     if (!data) return data;
+    let ts = data.timestamp ?? data.created_at ?? data.createdAt;
+    if (!ts || isNaN(new Date(ts).getTime())) {
+        ts = new Date().toISOString();
+    } else {
+        ts = new Date(ts).toISOString();
+    }
     return {
         ...data,
         id: data.id ?? data.scan_id ?? data.scanId ?? "",
         target: data.target ?? data.target_url ?? data.targetUrl ?? "",
+        timestamp: ts,
         status: data.status ?? "idle",
         progress: data.progress ?? 0,
         currentPhase: data.currentPhase ?? data.current_phase ?? "",
