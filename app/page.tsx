@@ -36,7 +36,8 @@ export default function HomePage() {
 
             if (!resp.ok) {
                 const data = await resp.json();
-                throw new Error(data.error || "Failed to start scan");
+                const msg = data.error || (Array.isArray(data.detail) ? data.detail.map((d: any) => d.msg).join(", ") : data.detail) || "Failed to start scan";
+                throw new Error(msg);
             }
 
             const data = await resp.json();

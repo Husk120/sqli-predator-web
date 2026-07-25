@@ -663,18 +663,18 @@ export default function ScanDetailPage() {
                     </div>
 
                     {/* Live Activity Feed Area */}
-                    <div className="bg-white rounded-2xl p-4 space-y-2.5">
-                        <div className="flex items-center justify-between border-b border-[#E9EDEC] pb-2">
-                            <h3 className="text-xs font-semibold text-[#16231F] flex items-center gap-2">
-                                <span className="h-2 w-2 rounded-full bg-[#0F6E56] animate-ping" />
+                    <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl p-4 space-y-2.5 shadow-sm">
+                        <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2">
+                            <h3 className="text-xs font-semibold text-[var(--text-primary)] flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full bg-[var(--accent-primary)] animate-ping" />
                                 Live Activity Feed
                             </h3>
-                            <span className="text-[11px] text-[#8A9694] font-mono">
+                            <span className="text-[11px] text-[var(--text-muted)] font-mono">
                                 {scan.scanLog?.length || 0} entries recorded
                             </span>
                         </div>
 
-                        <div className="bg-[#F5F7F6] rounded-xl p-3 max-h-60 overflow-y-auto font-mono text-xs space-y-1 text-[#16231F]">
+                        <div className="bg-[var(--bg-card-subtle)] rounded-xl p-3 max-h-60 overflow-y-auto font-mono text-xs space-y-1 text-[var(--text-primary)]">
                             {scan.scanLog && scan.scanLog.length > 0 ? (
                                 scan.scanLog.slice(-20).map((entry, i) => {
                                     let cls = "text-[#6B7A78]";
