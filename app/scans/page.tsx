@@ -179,7 +179,7 @@ export default function ScansPage() {
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
                     <h1 className="text-2xl font-bold text-[var(--text-primary)]">Scan History</h1>
-                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">Local scan traces and saved reports</p>
+                    <p className="text-xs text-[var(--text-muted)] mt-0.5">Local scan traces and saved reports</p>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -214,7 +214,7 @@ export default function ScansPage() {
 
                     <Link
                         href="/"
-                        className="text-sm bg-[var(--accent-primary)] text-white px-4 py-2 rounded-full hover:bg-[var(--accent-hover)] transition-colors font-medium"
+                        className="text-sm bg-[var(--accent-primary)] text-white px-4 py-2 rounded-full hover:bg-[var(--accent-hover)] transition-all shadow-sm font-medium"
                     >
                         + New Scan
                     </Link>
@@ -224,12 +224,12 @@ export default function ScansPage() {
             {loading ? (
                 <div className="text-center py-12 text-[var(--text-secondary)]">Loading scans...</div>
             ) : scans.length === 0 ? (
-                <div className="text-center py-12 bg-[var(--bg-card)] rounded-2xl border border-[var(--border-subtle)]">
+                <div className="text-center py-12 bg-[var(--bg-card)] rounded-2xl border border-dashed border-[var(--border-subtle)]">
                     <div className="text-4xl mb-3">🦅</div>
-                    <p className="text-[var(--text-secondary)]">No scans in history.</p>
+                    <p className="text-[var(--text-muted)]">No scans in history.</p>
                     <Link
                         href="/"
-                        className="inline-block mt-3 text-sm text-[var(--accent-primary)] hover:underline"
+                        className="inline-block mt-3 text-sm text-[var(--accent-primary)] hover:underline font-medium"
                     >
                         Start your first scan →
                     </Link>
@@ -240,21 +240,22 @@ export default function ScansPage() {
                         <Link
                             key={scan.id}
                             href={`/scans/${scan.id}`}
-                            className="block bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl p-4 hover:shadow-sm transition-all relative group"
+                            className="block bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl p-4 hover:border-[var(--accent-primary)]/40 transition-all relative group shadow-sm"
                         >
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-[var(--text-primary)]">{scan.target}</p>
+                                    <p className="text-sm font-semibold text-[var(--text-primary)]">{scan.target}</p>
                                     <p className="text-xs text-[var(--text-secondary)] mt-1">
                                         {new Date(scan.timestamp).toLocaleString()} · {scan.findings?.length || 0} findings · ID: <code className="bg-[var(--bg-pill-accent)] text-[var(--text-accent)] px-1.5 py-0.5 rounded font-mono text-xs">{scan.id}</code>
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <span className={`text-xs px-2 py-1 rounded-full ${scan.status === "completed" ? "bg-accent-green/10 text-accent-green" :
-                                            scan.status === "running" ? "bg-accent-blue/10 text-accent-blue pulse-active" :
-                                                scan.status === "failed" ? "bg-accent-red/10 text-accent-red" :
-                                                    "bg-gray-500/10 text-gray-400"
-                                        }`}>
+                                    <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+                                        scan.status === "completed" ? "bg-[var(--bg-pill-accent)] text-[var(--text-accent)]" :
+                                        scan.status === "running" ? "bg-[var(--bg-pill-accent)] text-[var(--text-accent)] pulse-active" :
+                                        scan.status === "failed" ? "bg-accent-red/10 text-accent-red" :
+                                        "bg-[var(--bg-pill-muted)] text-[var(--text-muted)]"
+                                    }`}>
                                         {scan.status}
                                     </span>
 
@@ -273,7 +274,7 @@ export default function ScansPage() {
                                             </button>
                                             <button
                                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setConfirmDeleteId(null); }}
-                                                className="text-xs bg-surface text-gray-400 px-2 py-0.5 rounded hover:text-white transition-colors"
+                                                className="text-xs bg-[var(--bg-pill-muted)] text-[var(--text-secondary)] px-2 py-0.5 rounded hover:text-[var(--text-primary)] transition-colors"
                                             >
                                                 No
                                             </button>
@@ -282,7 +283,7 @@ export default function ScansPage() {
                                         <button
                                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setConfirmDeleteId(scan.id); }}
                                             title="Remove scan from history"
-                                            className="text-xs text-gray-500 hover:text-accent-red p-1 rounded hover:bg-surface-hover transition-colors opacity-70 group-hover:opacity-100"
+                                            className="text-xs text-[var(--text-muted)] hover:text-accent-red p-1 rounded hover:bg-[var(--bg-pill-muted)] transition-colors opacity-70 group-hover:opacity-100"
                                         >
                                             🗑️
                                         </button>
@@ -299,7 +300,7 @@ export default function ScansPage() {
                                     ).map(([sev, count]) => (
                                         <span
                                             key={sev}
-                                            className="text-xs px-2 py-0.5 rounded-full"
+                                            className="text-xs px-2 py-0.5 rounded-full font-medium"
                                             style={{
                                                 background: `${SEVERITY_COLORS[sev] || '#888'}20`,
                                                 color: SEVERITY_COLORS[sev] || '#888',
