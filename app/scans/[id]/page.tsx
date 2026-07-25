@@ -39,23 +39,27 @@ function FindingCard({ finding, index }: { finding: SQLiFinding; index: number }
                 className={`flex items-center gap-2 p-3 flex-wrap cursor-pointer hover:bg-[var(--bg-card-subtle)] transition-colors border-b ${finding.likelyFalsePositive ? 'border-yellow-500/20 bg-[#FAEEDA]/30' : 'border-[var(--border-subtle)]'}`}
                 onClick={() => setExpanded(!expanded)}
             >
+                {/* Primary Badge: Severity */}
                 <span
-                    className="text-xs font-bold px-2.5 py-1 rounded-full text-white uppercase tracking-wide"
+                    className="text-xs font-extrabold px-3 py-1 rounded-full text-white uppercase tracking-wider shadow-sm"
                     style={{ background: color }}
                 >
                     {finding.severity}
                 </span>
-                <span className="text-xs bg-[var(--bg-pill-accent)] text-[var(--text-accent)] px-2.5 py-0.5 rounded-full font-medium">
+
+                {/* Secondary Badge: Detection Method */}
+                <span className="text-xs bg-[var(--bg-pill-accent)] text-[var(--text-accent)] px-2.5 py-0.5 rounded-full font-semibold border border-[var(--accent-primary)]/20">
                     {icon} {finding.detectionMethod?.replace(/_/g, " ") || "DETECTION"}
                 </span>
-                <span className="text-xs font-mono bg-[var(--bg-card-subtle)] text-[var(--text-primary)] px-2.5 py-0.5 rounded-full font-medium">
+
+                {/* Muted/Quiet Badges: CVSS & Confidence */}
+                <span className="text-xs font-mono bg-[var(--bg-pill-muted)] text-[var(--text-muted)] px-2.5 py-0.5 rounded-full font-medium">
                     CVSS {finding.cvssScore?.toFixed(1)}
                 </span>
                 <span
-                    className="text-xs px-2.5 py-0.5 rounded-full font-medium"
-                    style={{ background: `${confColor}18`, color: confColor }}
+                    className="text-xs font-mono bg-[var(--bg-pill-muted)] text-[var(--text-muted)] px-2.5 py-0.5 rounded-full font-medium"
                 >
-                    {finding.confidenceLevel || "Tentative"} Confidence ({Math.round((finding.confidence || 0) * 100)}%)
+                    {finding.confidenceLevel || "Tentative"} ({Math.round((finding.confidence || 0) * 100)}%)
                 </span>
                 {finding.likelyFalsePositive && (
                     <span className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-[#FAEEDA] text-[#633806]">
@@ -750,12 +754,16 @@ export default function ScanDetailPage() {
                             return (
                                 <div
                                     key={sev}
-                                    className={`bg-white rounded-2xl p-3 text-center transition-all ${isActive ? "border-2 border-[#0F6E56]" : "border-0"}`}
+                                    className={`rounded-2xl p-3 text-center transition-all ${
+                                        isActive
+                                            ? "bg-[var(--bg-card)] border-2 border-[var(--accent-primary)] shadow-[0_0_12px_rgba(15,110,86,0.25)]"
+                                            : "bg-[var(--bg-card)] border border-[var(--border-subtle)] opacity-70"
+                                    }`}
                                 >
-                                    <div className="text-2xl font-bold" style={{ color: isActive ? color : "#8A9694" }}>
+                                    <div className="text-2xl font-bold" style={{ color: isActive ? color : "var(--text-muted)" }}>
                                         {count}
                                     </div>
-                                    <div className="text-xs text-[#6B7A78] mt-0.5">{sev}</div>
+                                    <div className="text-xs text-[var(--text-secondary)] mt-0.5">{sev}</div>
                                 </div>
                             );
                         })}
