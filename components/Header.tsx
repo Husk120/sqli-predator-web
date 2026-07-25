@@ -1,20 +1,35 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function Header() {
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [theme, setTheme] = useState<"light" | "dark">("light");
+
+    useEffect(() => {
+        const saved = localStorage.getItem("sqli_theme") as "light" | "dark" | null;
+        const initialTheme = saved || "light";
+        setTheme(initialTheme);
+        document.documentElement.setAttribute("data-theme", initialTheme);
+    }, []);
+
+    const toggleTheme = () => {
+        const nextTheme = theme === "light" ? "dark" : "light";
+        setTheme(nextTheme);
+        localStorage.setItem("sqli_theme", nextTheme);
+        document.documentElement.setAttribute("data-theme", nextTheme);
+    };
 
     return (
-        <header className="bg-white/90 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
+        <header className="bg-[var(--bg-card)] border-b border-[var(--border-subtle)] sticky top-0 z-50 shadow-sm transition-colors">
             <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
                 <Link href="/" className="flex items-center gap-2">
                     <span className="text-2xl">🦅</span>
-                    <span className="font-bold text-lg text-[#16231F]">
-                        SQLi-<span className="text-[#0F6E56]">PREDATOR</span>
+                    <span className="font-bold text-lg text-[var(--text-primary)]">
+                        SQLi-<span className="text-[var(--accent-primary)]">PREDATOR</span>
                     </span>
-                    <span className="text-xs text-[#8A9694] ml-1 bg-[#E9EDEC] px-1.5 py-0.5 rounded-full">
+                    <span className="text-xs text-[var(--text-muted)] bg-[var(--bg-pill-muted)] px-1.5 py-0.5 rounded-full">
                         v4.0
                     </span>
                 </Link>
@@ -22,13 +37,13 @@ export function Header() {
                 <nav className="hidden md:flex items-center gap-6">
                     <Link
                         href="/"
-                        className="text-sm text-[#6B7A78] hover:text-[#16231F] transition-colors"
+                        className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
                     >
                         New Scan
                     </Link>
                     <Link
                         href="/scans"
-                        className="text-sm text-[#6B7A78] hover:text-[#16231F] transition-colors"
+                        className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
                     >
                         Scan History
                     </Link>
@@ -36,26 +51,42 @@ export function Header() {
                         href="https://github.com/hackerai/sqli-predator"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-[#6B7A78] hover:text-[#16231F] transition-colors"
+                        className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
                     >
                         GitHub
                     </a>
+                    <button
+                        onClick={toggleTheme}
+                        aria-label="Toggle theme"
+                        className="p-1.5 rounded-full bg-[var(--bg-pill-muted)] text-[var(--text-primary)] hover:opacity-80 transition-all text-sm flex items-center justify-center w-8 h-8"
+                    >
+                        {theme === "light" ? "🌙" : "☀️"}
+                    </button>
                 </nav>
 
-                <button
-                    className="md:hidden text-gray-400"
-                    onClick={() => setMobileOpen(!mobileOpen)}
-                >
-                    {mobileOpen ? "✕" : "☰"}
-                </button>
+                <div className="flex items-center gap-2 md:hidden">
+                    <button
+                        onClick={toggleTheme}
+                        aria-label="Toggle theme"
+                        className="p-1.5 rounded-full bg-[var(--bg-pill-muted)] text-[var(--text-primary)] text-sm flex items-center justify-center w-8 h-8"
+                    >
+                        {theme === "light" ? "🌙" : "☀️"}
+                    </button>
+                    <button
+                        className="text-[var(--text-secondary)]"
+                        onClick={() => setMobileOpen(!mobileOpen)}
+                    >
+                        {mobileOpen ? "✕" : "☰"}
+                    </button>
+                </div>
             </div>
 
             {mobileOpen && (
-                <div className="md:hidden border-t border-surface-border px-4 py-3 flex flex-col gap-3">
-                    <Link href="/" className="text-sm text-gray-400" onClick={() => setMobileOpen(false)}>
+                <div className="md:hidden border-t border-[var(--border-subtle)] px-4 py-3 flex flex-col gap-3 bg-[var(--bg-card)]">
+                    <Link href="/" className="text-sm text-[var(--text-secondary)]" onClick={() => setMobileOpen(false)}>
                         New Scan
                     </Link>
-                    <Link href="/scans" className="text-sm text-gray-400" onClick={() => setMobileOpen(false)}>
+                    <Link href="/scans" className="text-sm text-[var(--text-secondary)]" onClick={() => setMobileOpen(false)}>
                         Scan History
                     </Link>
                 </div>

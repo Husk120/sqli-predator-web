@@ -16,7 +16,6 @@ export default function HomePage() {
         setError(null);
 
         try {
-            // Convert camelCase profile to snake_case for backend API
             const scanRequest = {
                 target_url: profile.targetUrl,
                 crawl_depth: profile.crawlDepth,
@@ -27,8 +26,6 @@ export default function HomePage() {
                 boolean_threshold: profile.booleanThreshold,
                 auth_cookie: profile.authCookie,
                 auth_creds: profile.authCreds,
-                // Note: timeThreshold, timeSamples, and oobDomain from profile are not sent
-                // as they are not part of the backend's ScanRequest model
             };
 
             const resp = await fetch("https://sqli-predator-api.onrender.com/api/scan", {
@@ -45,7 +42,6 @@ export default function HomePage() {
             const data = await resp.json();
             setScanId(data.id);
 
-            // Store initial scan state in localStorage for fast client hydration
             try {
                 const initialScan = {
                     id: data.id,
@@ -75,30 +71,30 @@ export default function HomePage() {
         <div className="space-y-8">
             {/* Hero */}
             <div className="text-center py-8">
-                <h1 className="text-4xl font-bold text-[#16231F] mb-3">
-                    🦅 SQLi-<span className="text-[#0F6E56]">PREDATOR</span>
+                <h1 className="text-4xl font-bold text-[var(--text-primary)] mb-3">
+                    🦅 SQLi-<span className="text-[var(--accent-primary)]">PREDATOR</span>
                 </h1>
-                <p className="text-[#6B7A78] max-w-2xl mx-auto">
+                <p className="text-[var(--text-secondary)] max-w-2xl mx-auto">
                     Advanced SQL Injection Detection Engine — Multi-Vector, Polymorphic,
                     OOB & Statistical Analysis. <strong className="text-accent-orange">Authorized use only.</strong>
                 </p>
                 <div className="flex gap-2 justify-center mt-4 flex-wrap">
-                    <span className="text-xs bg-[#E9EDEC] text-[#6B7A78] px-2.5 py-1 rounded-full">
+                    <span className="text-xs bg-[var(--bg-pill-muted)] text-[var(--text-secondary)] px-2.5 py-1 rounded-full">
                         ⚠️ Error-Based
                     </span>
-                    <span className="text-xs bg-[#E9EDEC] text-[#6B7A78] px-2.5 py-1 rounded-full">
+                    <span className="text-xs bg-[var(--bg-pill-muted)] text-[var(--text-secondary)] px-2.5 py-1 rounded-full">
                         🔍 Boolean Blind
                     </span>
-                    <span className="text-xs bg-[#E9EDEC] text-[#6B7A78] px-2.5 py-1 rounded-full">
+                    <span className="text-xs bg-[var(--bg-pill-muted)] text-[var(--text-secondary)] px-2.5 py-1 rounded-full">
                         ⏱️ Time-Based (Statistical)
                     </span>
-                    <span className="text-xs bg-[#E9EDEC] text-[#6B7A78] px-2.5 py-1 rounded-full">
+                    <span className="text-xs bg-[var(--bg-pill-muted)] text-[var(--text-secondary)] px-2.5 py-1 rounded-full">
                         🔗 UNION Probe
                     </span>
-                    <span className="text-xs bg-[#E9EDEC] text-[#6B7A78] px-2.5 py-1 rounded-full">
+                    <span className="text-xs bg-[var(--bg-pill-muted)] text-[var(--text-secondary)] px-2.5 py-1 rounded-full">
                         🌐 OOB DNS/HTTP
                     </span>
-                    <span className="text-xs bg-[#E9EDEC] text-[#6B7A78] px-2.5 py-1 rounded-full">
+                    <span className="text-xs bg-[var(--bg-pill-muted)] text-[var(--text-secondary)] px-2.5 py-1 rounded-full">
                         🔄 Second-Order
                     </span>
                 </div>
@@ -129,21 +125,21 @@ export default function HomePage() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
-                <div className="bg-white rounded-2xl p-4 text-center">
-                    <div className="text-2xl font-bold text-[#0F6E56]">460+</div>
-                    <div className="text-xs text-[#6B7A78] mt-1">Base Payloads</div>
+                <div className="bg-[var(--bg-card)] rounded-2xl p-4 text-center border border-[var(--border-subtle)] transition-colors">
+                    <div className="text-2xl font-bold text-[var(--accent-primary)]">460+</div>
+                    <div className="text-xs text-[var(--text-secondary)] mt-1">Base Payloads</div>
                 </div>
-                <div className="bg-white rounded-2xl p-4 text-center">
-                    <div className="text-2xl font-bold text-[#0F6E56]">8</div>
-                    <div className="text-xs text-[#6B7A78] mt-1">Detection Methods</div>
+                <div className="bg-[var(--bg-card)] rounded-2xl p-4 text-center border border-[var(--border-subtle)] transition-colors">
+                    <div className="text-2xl font-bold text-[var(--accent-primary)]">8</div>
+                    <div className="text-xs text-[var(--text-secondary)] mt-1">Detection Methods</div>
                 </div>
-                <div className="bg-white rounded-2xl p-4 text-center">
-                    <div className="text-2xl font-bold text-[#0F6E56]">7</div>
-                    <div className="text-xs text-[#6B7A78] mt-1">Injection Vectors</div>
+                <div className="bg-[var(--bg-card)] rounded-2xl p-4 text-center border border-[var(--border-subtle)] transition-colors">
+                    <div className="text-2xl font-bold text-[var(--accent-primary)]">7</div>
+                    <div className="text-xs text-[var(--text-secondary)] mt-1">Injection Vectors</div>
                 </div>
-                <div className="bg-white rounded-2xl p-4 text-center">
-                    <div className="text-2xl font-bold text-[#0F6E56]">∞</div>
-                    <div className="text-xs text-[#6B7A78] mt-1">Polymorphic Variants</div>
+                <div className="bg-[var(--bg-card)] rounded-2xl p-4 text-center border border-[var(--border-subtle)] transition-colors">
+                    <div className="text-2xl font-bold text-[var(--accent-primary)]">∞</div>
+                    <div className="text-xs text-[var(--text-secondary)] mt-1">Polymorphic Variants</div>
                 </div>
             </div>
         </div>

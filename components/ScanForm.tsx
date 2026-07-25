@@ -41,30 +41,30 @@ export function ScanForm({ onStart, scanning }: ScanFormProps) {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 space-y-5">
-            <h2 className="text-lg font-semibold text-[#16231F]">New Scan</h2>
+        <form onSubmit={handleSubmit} className="bg-[var(--bg-card)] rounded-2xl p-6 space-y-5 transition-colors">
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">New Scan</h2>
 
             {/* Target URL */}
             <div>
-                <label className="block text-sm text-[#6B7A78] mb-1.5">Target URL *</label>
+                <label className="block text-sm text-[var(--text-secondary)] mb-1.5">Target URL *</label>
                 <input
                     type="url"
                     value={targetUrl}
                     onChange={(e) => setTargetUrl(e.target.value)}
                     placeholder="http://localhost/DVWA"
                     required
-                    className="w-full bg-[#F5F7F6] rounded-lg px-3 py-2 text-sm text-[#16231F] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0F6E56] transition-all"
+                    className="w-full bg-[var(--bg-card-subtle)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] transition-all"
                 />
             </div>
 
             {/* Two-column options */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm text-[#6B7A78] mb-1.5">Crawl Depth</label>
+                    <label className="block text-sm text-[var(--text-secondary)] mb-1.5">Crawl Depth</label>
                     <select
                         value={crawlDepth}
                         onChange={(e) => setCrawlDepth(Number(e.target.value))}
-                        className="w-full bg-[#F5F7F6] rounded-lg px-3 py-2 text-sm text-[#16231F] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0F6E56] transition-all"
+                        className="w-full bg-[var(--bg-card-subtle)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] transition-all"
                     >
                         <option value={1}>1 — Current page only</option>
                         <option value={2}>2 — One level deep</option>
@@ -73,11 +73,11 @@ export function ScanForm({ onStart, scanning }: ScanFormProps) {
                 </div>
 
                 <div>
-                    <label className="block text-sm text-[#6B7A78] mb-1.5">Time Samples (Statistical)</label>
+                    <label className="block text-sm text-[var(--text-secondary)] mb-1.5">Time Samples (Statistical)</label>
                     <select
                         value={timeSamples}
                         onChange={(e) => setTimeSamples(Number(e.target.value))}
-                        className="w-full bg-[#F5F7F6] rounded-lg px-3 py-2 text-sm text-[#16231F] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0F6E56] transition-all"
+                        className="w-full bg-[var(--bg-card-subtle)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] transition-all"
                     >
                         <option value={1}>1 — Fast, less accurate</option>
                         <option value={3}>3 — Balanced</option>
@@ -87,7 +87,7 @@ export function ScanForm({ onStart, scanning }: ScanFormProps) {
                 </div>
 
                 <div>
-                    <label className="block text-sm text-[#6B7A78] mb-1.5">Request Delay (seconds)</label>
+                    <label className="block text-sm text-[var(--text-secondary)] mb-1.5">Request Delay (seconds)</label>
                     <input
                         type="number"
                         min="0.1"
@@ -95,12 +95,12 @@ export function ScanForm({ onStart, scanning }: ScanFormProps) {
                         step="0.1"
                         value={requestDelay}
                         onChange={(e) => setRequestDelay(Number(e.target.value))}
-                        className="w-full bg-[#F5F7F6] rounded-lg px-3 py-2 text-sm text-[#16231F] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0F6E56] transition-all"
+                        className="w-full bg-[var(--bg-card-subtle)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] transition-all"
                     />
                 </div>
 
                 <div>
-                    <label className="block text-sm text-[#6B7A78] mb-1.5">Boolean Detection Threshold (%)</label>
+                    <label className="block text-sm text-[var(--text-secondary)] mb-1.5">Boolean Detection Threshold (%)</label>
                     <input
                         type="number"
                         min="0"
@@ -108,49 +108,49 @@ export function ScanForm({ onStart, scanning }: ScanFormProps) {
                         step="1"
                         value={booleanThreshold}
                         onChange={(e) => setBooleanThreshold(Number(e.target.value))}
-                        className="w-full bg-[#F5F7F6] rounded-lg px-3 py-2 text-sm text-[#16231F] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0F6E56] transition-all"
+                        className="w-full bg-[var(--bg-card-subtle)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] transition-all"
                     />
-                    <p className="text-xs text-[#8A9694] mt-1">
+                    <p className="text-xs text-[var(--text-muted)] mt-1">
                         Minimum response difference % to trigger boolean-based detection
                     </p>
                 </div>
 
                 <div>
-                    <label className="block text-sm text-[#6B7A78] mb-1.5">OOB Domain</label>
+                    <label className="block text-sm text-[var(--text-secondary)] mb-1.5">OOB Domain</label>
                     <input
                         type="text"
                         value={oobDomain}
                         onChange={(e) => setOobDomain(e.target.value)}
                         placeholder="interactsh.com"
-                        className="w-full bg-[#F5F7F6] rounded-lg px-3 py-2 text-sm text-[#16231F] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0F6E56] transition-all"
+                        className="w-full bg-[var(--bg-card-subtle)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] transition-all"
                     />
                 </div>
             </div>
 
             {/* Auth section */}
             <details className="text-sm">
-                <summary className="text-[#6B7A78] cursor-pointer hover:text-[#16231F] transition-colors">
+                <summary className="text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors">
                     Authentication (optional)
                 </summary>
                 <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm text-[#6B7A78] mb-1.5">Auth Cookie</label>
+                        <label className="block text-sm text-[var(--text-secondary)] mb-1.5">Auth Cookie</label>
                         <input
                             type="text"
                             value={authCookie}
                             onChange={(e) => setAuthCookie(e.target.value)}
                             placeholder="PHPSESSID=abc123; security=low"
-                            className="w-full bg-[#F5F7F6] rounded-lg px-3 py-2 text-sm text-[#16231F] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0F6E56] transition-all"
+                            className="w-full bg-[var(--bg-card-subtle)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] transition-all"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm text-[#6B7A78] mb-1.5">Basic Auth (user:pass)</label>
+                        <label className="block text-sm text-[var(--text-secondary)] mb-1.5">Basic Auth (user:pass)</label>
                         <input
                             type="text"
                             value={authCreds}
                             onChange={(e) => setAuthCreds(e.target.value)}
                             placeholder="admin:password"
-                            className="w-full bg-[#F5F7F6] rounded-lg px-3 py-2 text-sm text-[#16231F] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0F6E56] transition-all"
+                            className="w-full bg-[var(--bg-card-subtle)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] transition-all"
                         />
                     </div>
                 </div>
@@ -163,18 +163,18 @@ export function ScanForm({ onStart, scanning }: ScanFormProps) {
                         type="checkbox"
                         checked={testAllHeaders}
                         onChange={(e) => setTestAllHeaders(e.target.checked)}
-                        className="rounded bg-surface border-surface-border text-accent-blue focus:ring-accent-blue"
+                        className="rounded bg-[var(--bg-card-subtle)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
                     />
-                    <span className="text-sm text-[#6B7A78]">Test HTTP Headers</span>
+                    <span className="text-sm text-[var(--text-secondary)]">Test HTTP Headers</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                     <input
                         type="checkbox"
                         checked={testSecondOrder}
                         onChange={(e) => setTestSecondOrder(e.target.checked)}
-                        className="rounded bg-surface border-surface-border text-accent-blue focus:ring-accent-blue"
+                        className="rounded bg-[var(--bg-card-subtle)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
                     />
-                    <span className="text-sm text-[#6B7A78]">Second-Order Detection</span>
+                    <span className="text-sm text-[var(--text-secondary)]">Second-Order Detection</span>
                 </label>
             </div>
 
@@ -183,7 +183,7 @@ export function ScanForm({ onStart, scanning }: ScanFormProps) {
                 type="submit"
                 disabled={scanning || !targetUrl.trim()}
                 className="w-full py-2.5 rounded-full font-medium text-sm transition-all
-  bg-[#0F6E56] text-white hover:bg-[#0F6E56]/90
+  bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-hover)]
   disabled:opacity-40 disabled:cursor-not-allowed"
             >
                 {scanning ? (

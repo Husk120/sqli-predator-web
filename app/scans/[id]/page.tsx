@@ -33,10 +33,10 @@ function FindingCard({ finding, index }: { finding: SQLiFinding; index: number }
     const confColor = CONFIDENCE_COLORS[(finding.confidenceLevel || "Tentative") as ConfidenceLevel] || "#6c757d";
 
     return (
-        <div className={`bg-white rounded-2xl overflow-hidden shadow-sm transition-all ${finding.likelyFalsePositive ? 'opacity-90' : ''}`}>
+        <div className={`bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl overflow-hidden shadow-sm transition-all ${finding.likelyFalsePositive ? 'opacity-90' : ''}`}>
             {/* Card Header */}
             <div
-                className={`flex items-center gap-2 p-3 flex-wrap cursor-pointer hover:bg-[#F5F7F6]/60 transition-colors border-b ${finding.likelyFalsePositive ? 'border-yellow-500/20 bg-[#FAEEDA]/30' : 'border-[#E9EDEC]'}`}
+                className={`flex items-center gap-2 p-3 flex-wrap cursor-pointer hover:bg-[var(--bg-card-subtle)] transition-colors border-b ${finding.likelyFalsePositive ? 'border-yellow-500/20 bg-[#FAEEDA]/30' : 'border-[var(--border-subtle)]'}`}
                 onClick={() => setExpanded(!expanded)}
             >
                 <span
@@ -45,10 +45,10 @@ function FindingCard({ finding, index }: { finding: SQLiFinding; index: number }
                 >
                     {finding.severity}
                 </span>
-                <span className="text-xs bg-[#E1F5EE] text-[#085041] px-2.5 py-0.5 rounded-full font-medium">
+                <span className="text-xs bg-[var(--bg-pill-accent)] text-[var(--text-accent)] px-2.5 py-0.5 rounded-full font-medium">
                     {icon} {finding.detectionMethod?.replace(/_/g, " ") || "DETECTION"}
                 </span>
-                <span className="text-xs font-mono bg-[#F5F7F6] text-[#16231F] px-2.5 py-0.5 rounded-full font-medium">
+                <span className="text-xs font-mono bg-[var(--bg-card-subtle)] text-[var(--text-primary)] px-2.5 py-0.5 rounded-full font-medium">
                     CVSS {finding.cvssScore?.toFixed(1)}
                 </span>
                 <span
@@ -62,50 +62,50 @@ function FindingCard({ finding, index }: { finding: SQLiFinding; index: number }
                         ⚠️ Likely False Positive
                     </span>
                 )}
-                <span className="text-xs text-[#8A9694] ml-auto">{expanded ? "▲ collapse" : "▼ expand"}</span>
+                <span className="text-xs text-[var(--text-muted)] ml-auto">{expanded ? "▲ collapse" : "▼ expand"}</span>
             </div>
 
             {/* Card Body — always shown summary */}
             <div className="p-4 space-y-3">
                 <div className="flex items-start gap-2">
-                    <span className="text-[#8A9694] text-xs pt-0.5 shrink-0">#{index + 1}</span>
+                    <span className="text-[var(--text-muted)] text-xs pt-0.5 shrink-0">#{index + 1}</span>
                     <div>
-                        <p className="text-sm text-[#16231F]">
-                            Parameter: <code className="text-[#0F6E56] bg-[#E1F5EE] px-1.5 py-0.5 rounded font-mono text-xs">{finding.parameter}</code>{" "}
-                            via <span className="text-[#6B7A78] text-xs">{finding.vector}</span>{" "}
+                        <p className="text-sm text-[var(--text-primary)]">
+                            Parameter: <code className="text-[var(--text-accent)] bg-[var(--bg-pill-accent)] px-1.5 py-0.5 rounded font-mono text-xs">{finding.parameter}</code>{" "}
+                            via <span className="text-[var(--text-secondary)] text-xs">{finding.vector}</span>{" "}
                             {finding.attackSurface && (
-                                <span className="text-xs bg-[#E9EDEC] text-[#6B7A78] px-2 py-0.5 rounded-full">
+                                <span className="text-xs bg-[var(--bg-pill-muted)] text-[var(--text-secondary)] px-2 py-0.5 rounded-full">
                                     {finding.attackSurface}
                                 </span>
                             )}
                         </p>
-                        <p className="text-xs text-[#8A9694] mt-0.5 break-all">{finding.url}</p>
+                        <p className="text-xs text-[var(--text-muted)] mt-0.5 break-all">{finding.url}</p>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                     <div>
-                        <span className="text-[#8A9694] block mb-0.5">DB Type</span>
-                        <code className="text-[#0F6E56] bg-[#E1F5EE] px-1.5 py-0.5 rounded font-mono">{finding.dbTypeHint || "unknown"}</code>
+                        <span className="text-[var(--text-muted)] block mb-0.5">DB Type</span>
+                        <code className="text-[var(--text-accent)] bg-[var(--bg-pill-accent)] px-1.5 py-0.5 rounded font-mono">{finding.dbTypeHint || "unknown"}</code>
                     </div>
                     <div>
-                        <span className="text-[#8A9694] block mb-0.5">CWE</span>
+                        <span className="text-[var(--text-muted)] block mb-0.5">CWE</span>
                         <a href={`https://cwe.mitre.org/data/definitions/89.html`} target="_blank" rel="noopener"
-                            className="text-[#0F6E56] font-medium hover:underline">
+                            className="text-[var(--accent-primary)] font-medium hover:underline">
                             {finding.cweId || "CWE-89"}
                         </a>
                     </div>
                     <div>
-                        <span className="text-[#8A9694] block mb-0.5">OWASP</span>
-                        <span className="text-[#16231F] font-medium">{finding.owaspCategory || "A03:2021"}</span>
+                        <span className="text-[var(--text-muted)] block mb-0.5">OWASP</span>
+                        <span className="text-[var(--text-primary)] font-medium">{finding.owaspCategory || "A03:2021"}</span>
                     </div>
                     <div>
-                        <span className="text-[#8A9694] block mb-0.5">Bypass</span>
-                        <code className="text-[#16231F] bg-[#F5F7F6] px-1.5 py-0.5 rounded font-mono">{finding.bypassTechnique || "NONE"}</code>
+                        <span className="text-[var(--text-muted)] block mb-0.5">Bypass</span>
+                        <code className="text-[var(--text-primary)] bg-[var(--bg-card-subtle)] px-1.5 py-0.5 rounded font-mono">{finding.bypassTechnique || "NONE"}</code>
                     </div>
                     {finding.timeDelayDetected && (
                         <div>
-                            <span className="text-[#8A9694] block mb-0.5">Time Delay</span>
+                            <span className="text-[var(--text-muted)] block mb-0.5">Time Delay</span>
                             <code className="text-[#993C1D] bg-[#FAECE7] px-1.5 py-0.5 rounded font-mono">
                                 {finding.timeDelaySeconds?.toFixed(2)}s
                                 {finding.timingZScore ? ` (Z=${finding.timingZScore.toFixed(1)})` : ""}
@@ -114,19 +114,19 @@ function FindingCard({ finding, index }: { finding: SQLiFinding; index: number }
                     )}
                     {finding.responseDifferencePercent > 0 && (
                         <div>
-                            <span className="text-[#8A9694] block mb-0.5">Content Diff</span>
-                            <code className="text-[#16231F] bg-[#F5F7F6] px-1.5 py-0.5 rounded font-mono">{finding.responseDifferencePercent.toFixed(1)}%</code>
+                            <span className="text-[var(--text-muted)] block mb-0.5">Content Diff</span>
+                            <code className="text-[var(--text-primary)] bg-[var(--bg-card-subtle)] px-1.5 py-0.5 rounded font-mono">{finding.responseDifferencePercent.toFixed(1)}%</code>
                         </div>
                     )}
                     {finding.isBooleanPositive === true && (
                         <div>
-                            <span className="text-[#8A9694] block mb-0.5">Boolean</span>
-                            <code className="text-[#085041] bg-[#E1F5EE] px-1.5 py-0.5 rounded font-mono">TRUE≠FALSE ✓</code>
+                            <span className="text-[var(--text-muted)] block mb-0.5">Boolean</span>
+                            <code className="text-[var(--text-accent)] bg-[var(--bg-pill-accent)] px-1.5 py-0.5 rounded font-mono">TRUE≠FALSE ✓</code>
                         </div>
                     )}
                     {finding.oobInteractionId && (
                         <div>
-                            <span className="text-[#8A9694] block mb-0.5">OOB</span>
+                            <span className="text-[var(--text-muted)] block mb-0.5">OOB</span>
                             <code className="text-[#993C1D] bg-[#FAECE7] px-1.5 py-0.5 rounded font-mono">Injected (verify callback)</code>
                         </div>
                     )}
@@ -135,7 +135,7 @@ function FindingCard({ finding, index }: { finding: SQLiFinding; index: number }
                 {/* Error signatures */}
                 {finding.errorSignatures && finding.errorSignatures.length > 0 && (
                     <div>
-                        <span className="text-xs text-[#8A9694] block mb-1">Error Signatures Matched</span>
+                        <span className="text-xs text-[var(--text-muted)] block mb-1">Error Signatures Matched</span>
                         <div className="flex flex-wrap gap-1">
                             {finding.errorSignatures.slice(0, 5).map((s, si) => (
                                 <span key={si} className="text-[#993C1D] bg-[#FAECE7] px-2 py-0.5 rounded-full text-xs font-mono">
@@ -143,7 +143,7 @@ function FindingCard({ finding, index }: { finding: SQLiFinding; index: number }
                                 </span>
                             ))}
                             {finding.errorSignatures.length > 5 && (
-                                <span className="text-xs text-[#8A9694] self-center">+{finding.errorSignatures.length - 5} more</span>
+                                <span className="text-xs text-[var(--text-muted)] self-center">+{finding.errorSignatures.length - 5} more</span>
                             )}
                         </div>
                     </div>
@@ -151,8 +151,8 @@ function FindingCard({ finding, index }: { finding: SQLiFinding; index: number }
 
                 {/* Payload */}
                 <div>
-                    <span className="text-xs text-[#8A9694] block mb-0.5">Payload Used</span>
-                    <pre className="text-xs text-[#16231F] bg-[#F5F7F6] rounded-xl p-3 overflow-x-auto max-h-20 font-mono whitespace-pre-wrap border-0">
+                    <span className="text-xs text-[var(--text-muted)] block mb-0.5">Payload Used</span>
+                    <pre className="text-xs text-[var(--text-primary)] bg-[var(--bg-card-subtle)] rounded-xl p-3 overflow-x-auto max-h-20 font-mono whitespace-pre-wrap border-0">
                         <code>{finding.payloadUsed}</code>
                     </pre>
                 </div>
@@ -524,23 +524,23 @@ export default function ScanDetailPage() {
             <div className="flex items-start justify-between">
                 <div>
                     <div className="flex items-center gap-2 mb-1">
-                        <Link href="/scans" className="text-sm text-[#6B7A78] hover:text-[#16231F]">← Back</Link>
-                        <span className="text-[#8A9694]">|</span>
-                        <h1 className="text-xl font-bold text-[#16231F]">Scan Report</h1>
+                        <Link href="/scans" className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]">← Back</Link>
+                        <span className="text-[var(--text-muted)]">|</span>
+                        <h1 className="text-xl font-bold text-[var(--text-primary)]">Scan Report</h1>
                     </div>
-                    <p className="text-sm text-[#6B7A78]">
-                        Target: <code className="text-[#0F6E56] font-mono bg-[#E1F5EE] border-0">{scan.target}</code>
+                    <p className="text-sm text-[var(--text-secondary)]">
+                        Target: <code className="text-[var(--text-accent)] font-mono bg-[var(--bg-pill-accent)] border-0">{scan.target}</code>
                     </p>
-                    <p className="text-xs text-[#8A9694] mt-0.5">
-                        {new Date(scan.timestamp).toLocaleString()} · ID: <code className="text-[#8A9694] font-mono bg-[#E9EDEC] border-0">{scan.id}</code>
+                    <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                        {new Date(scan.timestamp).toLocaleString()} · ID: <code className="text-[var(--text-muted)] font-mono bg-[var(--bg-pill-muted)] border-0">{scan.id}</code>
                     </p>
                 </div>
 
                 <div className="flex items-center gap-3">
                     {scan.status === "running" && (
                         <>
-                            <div className="flex items-center gap-2 text-[#085041] text-sm pulse-active px-3 py-1.5 rounded-full bg-[#E1F5EE] font-medium">
-                                <svg className="animate-spin h-4 w-4 text-[#0F6E56]" viewBox="0 0 24 24">
+                            <div className="flex items-center gap-2 text-[var(--text-accent)] text-sm pulse-active px-3 py-1.5 rounded-full bg-[var(--bg-pill-accent)] font-medium">
+                                <svg className="animate-spin h-4 w-4 text-[var(--accent-primary)]" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                                 </svg>
@@ -557,7 +557,7 @@ export default function ScanDetailPage() {
                         </>
                     )}
                     {scan.status === "completed" && (
-                        <span className="text-xs bg-[#E1F5EE] text-[#085041] px-3.5 py-2 rounded-full font-semibold flex items-center gap-1.5">
+                        <span className="text-xs bg-[var(--bg-pill-accent)] text-[var(--text-accent)] px-3.5 py-2 rounded-full font-semibold flex items-center gap-1.5">
                             ✅ Complete ({scan.duration?.toFixed(1)}s)
                         </span>
                     )}
@@ -567,7 +567,7 @@ export default function ScanDetailPage() {
                         </span>
                     )}
                     {scan.status === "failed" && (
-                        <span className="text-xs bg-[#FAECE7] text-[#993C1D] px-3.5 py-2 rounded-full font-semibold flex items-center gap-1.5">❌ Failed</span>
+                        <span className="text-xs bg-[var(--bg-pill-danger)] text-[var(--text-danger)] px-3.5 py-2 rounded-full font-semibold flex items-center gap-1.5">❌ Failed</span>
                     )}
                 </div>
             </div>
@@ -576,27 +576,27 @@ export default function ScanDetailPage() {
             {scan.status === "running" && (
                 <div className="space-y-4">
                     {/* Pipeline & Stepper Card */}
-                    <div className="bg-white rounded-2xl p-5 space-y-4 relative overflow-hidden">
+                    <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl p-5 space-y-4 relative overflow-hidden">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h2 className="text-sm font-bold text-[#16231F] flex items-center gap-2">
+                                <h2 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
                                     <span className="relative flex h-2.5 w-2.5">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0F6E56] opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#0F6E56]"></span>
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent-primary)] opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[var(--accent-primary)]"></span>
                                     </span>
                                     Scan Pipeline Progress
                                 </h2>
-                                <p className="text-xs text-[#6B7A78] mt-0.5">{scan.currentPhase || "Executing security probes..."}</p>
+                                <p className="text-xs text-[var(--text-secondary)] mt-0.5">{scan.currentPhase || "Executing security probes..."}</p>
                             </div>
                             <div className="text-right">
-                                <span className="text-2xl font-extrabold text-[#0F6E56] font-mono">{scan.progress?.toFixed(0) || 0}%</span>
+                                <span className="text-2xl font-extrabold text-[var(--accent-primary)] font-mono">{scan.progress?.toFixed(0) || 0}%</span>
                             </div>
                         </div>
 
                         {/* Enhanced Animated Progress Bar */}
-                        <div className="w-full bg-[#E9EDEC] rounded-full h-3.5 p-0.5 overflow-hidden">
+                        <div className="w-full bg-[var(--bg-pill-muted)] rounded-full h-3.5 p-0.5 overflow-hidden">
                             <div
-                                className="h-full rounded-full bg-[#0F6E56] transition-all duration-700 relative overflow-hidden"
+                                className="h-full rounded-full bg-[var(--accent-primary)] transition-all duration-700 relative overflow-hidden"
                                 style={{ width: `${Math.max(scan.progress || 0, 3)}%` }}
                             >
                                 <div className="absolute inset-0 bg-white/20 animate-pulse" />
@@ -621,7 +621,7 @@ export default function ScanDetailPage() {
                             else if (p.includes("form") || progress >= 20) activeIdx = 1;
 
                             return (
-                                <div className="grid grid-cols-5 gap-2 pt-3 border-t border-[#E9EDEC]">
+                                <div className="grid grid-cols-5 gap-2 pt-3 border-t border-[var(--border-subtle)]">
                                     {steps.map((step, idx) => {
                                         const isCompleted = idx < activeIdx;
                                         const isCurrent = idx === activeIdx;
@@ -630,18 +630,18 @@ export default function ScanDetailPage() {
                                                 <div
                                                     className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                                                         isCompleted
-                                                            ? "bg-[#0F6E56] text-white font-extrabold"
+                                                            ? "bg-[var(--accent-primary)] text-white font-extrabold"
                                                             : isCurrent
-                                                            ? "bg-[#0F6E56] text-white ring-4 ring-[#0F6E56]/20 animate-pulse"
-                                                            : "bg-[#E9EDEC] text-[#8A9694]"
+                                                            ? "bg-[var(--accent-primary)] text-white ring-4 ring-[var(--accent-primary)]/20 animate-pulse"
+                                                            : "bg-[var(--bg-pill-muted)] text-[var(--text-muted)]"
                                                     }`}
                                                 >
                                                     {isCompleted ? "✓" : idx + 1}
                                                 </div>
-                                                <span className={`text-xs mt-2 font-medium ${isCurrent ? "text-[#0F6E56]" : isCompleted ? "text-[#16231F]" : "text-[#8A9694]"}`}>
+                                                <span className={`text-xs mt-2 font-medium ${isCurrent ? "text-[var(--accent-primary)]" : isCompleted ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"}`}>
                                                     {step.label}
                                                 </span>
-                                                <span className="text-[10px] text-[#8A9694] hidden md:block mt-0.5">{step.sub}</span>
+                                                <span className="text-[10px] text-[var(--text-muted)] hidden md:block mt-0.5">{step.sub}</span>
                                             </div>
                                         );
                                     })}
@@ -825,7 +825,7 @@ export default function ScanDetailPage() {
                     )}
 
                     {/* Export */}
-                    <div className="flex gap-3 pt-4">
+                    <div className="flex gap-3 pt-4 flex-wrap">
                         <button
                             onClick={() => {
                                 const blob = new Blob([JSON.stringify(scan, null, 2)], { type: "application/json" });
@@ -836,7 +836,7 @@ export default function ScanDetailPage() {
                                 a.click();
                                 URL.revokeObjectURL(url);
                             }}
-                            className="text-sm bg-surface-card border border-surface-border px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:border-gray-600 transition-colors"
+                            className="text-sm bg-[var(--bg-card)] border border-[var(--border-subtle)] px-4 py-2 rounded-full text-[var(--text-primary)] hover:bg-[var(--bg-pill-muted)] transition-colors font-medium shadow-sm"
                         >
                             📥 Export JSON
                         </button>
@@ -883,9 +883,115 @@ export default function ScanDetailPage() {
                                 a.click();
                                 URL.revokeObjectURL(url);
                             }}
-                            className="text-sm bg-surface-card border border-surface-border px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:border-gray-600 transition-colors"
+                            className="text-sm bg-[var(--bg-card)] border border-[var(--border-subtle)] px-4 py-2 rounded-full text-[var(--text-primary)] hover:bg-[var(--bg-pill-muted)] transition-colors font-medium shadow-sm"
                         >
                             📄 Export Markdown
+                        </button>
+                        <button
+                            onClick={() => {
+                                const findingsHtml = (scan.findings || []).map((f, i) => `
+                                    <div class="card">
+                                        <div class="finding-header">
+                                            <span class="badge badge-${(f.severity || 'low').toLowerCase()}">${f.severity}</span>
+                                            <span class="pill">${f.detectionMethod || 'DETECTION'}</span>
+                                            <span class="pill">CVSS ${f.cvssScore?.toFixed(1) || '0.0'}</span>
+                                            <span class="pill">${f.confidenceLevel || 'Tentative'} Confidence (${Math.round((f.confidence || 0) * 100)}%)</span>
+                                            ${f.likelyFalsePositive ? '<span class="pill warning">⚠️ Likely False Positive</span>' : ''}
+                                        </div>
+                                        <div>
+                                            <p><strong>Parameter:</strong> <code>${f.parameter}</code> via <span>${f.vector}</span> ${f.attackSurface ? `<span class="pill">${f.attackSurface}</span>` : ''}</p>
+                                            <p class="url">${f.url}</p>
+                                            <div class="grid">
+                                                <div><span class="label">DB Type</span><code>${f.dbTypeHint || 'unknown'}</code></div>
+                                                <div><span class="label">CWE</span><span>${f.cweId || 'CWE-89'}</span></div>
+                                                <div><span class="label">OWASP</span><span>${f.owaspCategory || 'A03:2021'}</span></div>
+                                                <div><span class="label">Bypass</span><code>${f.bypassTechnique || 'NONE'}</code></div>
+                                                ${f.timeDelayDetected ? `<div><span class="label">Time Delay</span><code class="danger">${f.timeDelaySeconds?.toFixed(2)}s</code></div>` : ''}
+                                                ${f.responseDifferencePercent > 0 ? `<div><span class="label">Content Diff</span><code>${f.responseDifferencePercent.toFixed(1)}%</code></div>` : ''}
+                                            </div>
+                                            ${f.errorSignatures && f.errorSignatures.length > 0 ? `
+                                                <div style="margin-top: 10px;">
+                                                    <span class="label">Matched Signatures:</span>
+                                                    ${f.errorSignatures.map(s => `<span class="sig-tag">${s}</span>`).join('')}
+                                                </div>
+                                            ` : ''}
+                                            <div style="margin-top: 10px;">
+                                                <span class="label">Payload Used</span>
+                                                <pre>${f.payloadUsed || ''}</pre>
+                                            </div>
+                                            ${f.aiExplanation ? `
+                                                <div class="analysis-box">
+                                                    <strong>📖 Technical Analysis:</strong>
+                                                    <p>${f.aiExplanation}</p>
+                                                </div>
+                                            ` : ''}
+                                            ${f.remediationSteps && f.remediationSteps.length > 0 ? `
+                                                <div class="remediation-box">
+                                                    <strong>🛡️ Remediation Steps:</strong>
+                                                    <ol>${f.remediationSteps.map(step => `<li>${step}</li>`).join('')}</ol>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                `).join('');
+
+                                const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SQLi-PREDATOR Report - ${scan.target}</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background: #F5F7F6; color: #16231F; padding: 32px; max-width: 960px; margin: 0 auto; line-height: 1.5; }
+        .card { background: #ffffff; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        h1 { font-size: 24px; margin: 0 0 8px 0; }
+        .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: bold; color: #fff; text-transform: uppercase; }
+        .badge-critical { background: #dc3545; }
+        .badge-high { background: #fd7e14; color: #000; }
+        .badge-medium { background: #ffc107; color: #000; }
+        .badge-low { background: #28a745; }
+        .badge-info { background: #17a2b8; }
+        .pill { display: inline-block; background: #E1F5EE; color: #085041; padding: 4px 10px; border-radius: 999px; font-size: 12px; margin-right: 6px; font-weight: 500; }
+        .pill.warning { background: #FAEEDA; color: #633806; }
+        .finding-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; border-bottom: 1px solid #E9EDEC; padding-bottom: 12px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 16px 0; font-size: 13px; }
+        .label { color: #8A9694; font-size: 12px; display: block; margin-bottom: 2px; }
+        code { background: #E1F5EE; color: #085041; padding: 2px 8px; border-radius: 999px; font-family: monospace; font-size: 12px; }
+        code.danger { background: #FAECE7; color: #993C1D; }
+        pre { background: #F5F7F6; color: #16231F; padding: 12px; border-radius: 12px; overflow-x: auto; font-family: monospace; font-size: 12px; margin: 6px 0 0 0; white-space: pre-wrap; }
+        .url { font-size: 12px; color: #6B7A78; word-break: break-all; margin-top: 4px; }
+        .analysis-box { background: #F5F7F6; padding: 14px; border-radius: 12px; font-size: 13px; margin-top: 12px; }
+        .remediation-box { background: #E1F5EE; color: #085041; padding: 14px; border-radius: 12px; font-size: 13px; margin-top: 12px; }
+        .sig-tag { display: inline-block; background: #FAECE7; color: #993C1D; font-family: monospace; font-size: 11px; padding: 2px 8px; border-radius: 999px; margin-right: 4px; margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🦅 SQLi-PREDATOR Security Report</h1>
+        <p><strong>Target:</strong> ${scan.target} · <strong>ID:</strong> <code>${scan.id}</code></p>
+        <p><strong>Generated:</strong> ${new Date(scan.timestamp).toLocaleString()} · <strong>Duration:</strong> ${scan.duration?.toFixed(1) || '0'}s</p>
+    </div>
+    <h2>Vulnerability Findings (${scan.findings?.length || 0})</h2>
+    ${findingsHtml || '<div class="card"><p>No findings recorded.</p></div>'}
+</body>
+</html>`;
+
+                                const blob = new Blob([htmlContent], { type: "text/html" });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement("a");
+                                a.href = url;
+                                a.download = `sqli_predator_${scan.id}.html`;
+                                a.click();
+                                URL.revokeObjectURL(url);
+                            }}
+                            className="text-sm bg-[var(--bg-card)] border border-[var(--border-subtle)] px-4 py-2 rounded-full text-[var(--text-primary)] hover:bg-[var(--bg-pill-muted)] transition-colors font-medium shadow-sm"
+                        >
+                            🌐 Export HTML
+                        </button>
+                        <button
+                            onClick={() => window.print()}
+                            className="text-sm bg-[var(--bg-card)] border border-[var(--border-subtle)] px-4 py-2 rounded-full text-[var(--text-primary)] hover:bg-[var(--bg-pill-muted)] transition-colors font-medium shadow-sm"
+                        >
+                            🖨️ Export PDF / Print
                         </button>
                     </div>
                 </>

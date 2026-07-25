@@ -178,8 +178,8 @@ export default function ScansPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
-                    <h1 className="text-2xl font-bold text-[#16231F]">Scan History</h1>
-                    <p className="text-xs text-[#6B7A78] mt-0.5">Local scan traces and saved reports</p>
+                    <h1 className="text-2xl font-bold text-[var(--text-primary)]">Scan History</h1>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">Local scan traces and saved reports</p>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -196,7 +196,7 @@ export default function ScansPage() {
                                     </button>
                                     <button
                                         onClick={() => setConfirmClearAll(false)}
-                                        className="text-xs bg-surface text-gray-400 px-2.5 py-1 rounded hover:text-white transition-colors"
+                                        className="text-xs bg-[var(--bg-pill-muted)] text-[var(--text-secondary)] px-2.5 py-1 rounded hover:text-[var(--text-primary)] transition-colors"
                                     >
                                         Cancel
                                     </button>
@@ -204,7 +204,7 @@ export default function ScansPage() {
                             ) : (
                                 <button
                                     onClick={() => setConfirmClearAll(true)}
-                                    className="text-xs text-[#6B7A78] hover:text-accent-red border border-[#E9EDEC] hover:border-accent-red/40 px-3 py-1.5 rounded-full transition-colors font-medium flex items-center gap-1.5"
+                                    className="text-xs text-[var(--text-secondary)] hover:text-accent-red border border-[var(--border-subtle)] hover:border-accent-red/40 px-3 py-1.5 rounded-full transition-colors font-medium flex items-center gap-1.5"
                                 >
                                     🗑️ Clear All History
                                 </button>
@@ -214,7 +214,7 @@ export default function ScansPage() {
 
                     <Link
                         href="/"
-                        className="text-sm bg-[#0F6E56] text-white px-4 py-2 rounded-full hover:bg-[#0F6E56]/90 transition-colors font-medium"
+                        className="text-sm bg-[var(--accent-primary)] text-white px-4 py-2 rounded-full hover:bg-[var(--accent-hover)] transition-colors font-medium"
                     >
                         + New Scan
                     </Link>
@@ -222,14 +222,14 @@ export default function ScansPage() {
             </div>
 
             {loading ? (
-                <div className="text-center py-12 text-[#6B7A78]">Loading scans...</div>
+                <div className="text-center py-12 text-[var(--text-secondary)]">Loading scans...</div>
             ) : scans.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-2xl">
+                <div className="text-center py-12 bg-[var(--bg-card)] rounded-2xl border border-[var(--border-subtle)]">
                     <div className="text-4xl mb-3">🦅</div>
-                    <p className="text-[#6B7A78]">No scans in history.</p>
+                    <p className="text-[var(--text-secondary)]">No scans in history.</p>
                     <Link
                         href="/"
-                        className="inline-block mt-3 text-sm text-[#0F6E56] hover:underline"
+                        className="inline-block mt-3 text-sm text-[var(--accent-primary)] hover:underline"
                     >
                         Start your first scan →
                     </Link>
@@ -240,13 +240,13 @@ export default function ScansPage() {
                         <Link
                             key={scan.id}
                             href={`/scans/${scan.id}`}
-                            className="block bg-white rounded-2xl p-4 hover:shadow-sm transition-all relative group"
+                            className="block bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl p-4 hover:shadow-sm transition-all relative group"
                         >
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-[#16231F]">{scan.target}</p>
-                                    <p className="text-xs text-[#6B7A78] mt-1">
-                                        {new Date(scan.timestamp).toLocaleString()} · {scan.findings?.length || 0} findings · ID: <code className="bg-[#E1F5EE] text-[#085041] px-1.5 py-0.5 rounded font-mono text-xs">{scan.id}</code>
+                                    <p className="text-sm font-medium text-[var(--text-primary)]">{scan.target}</p>
+                                    <p className="text-xs text-[var(--text-secondary)] mt-1">
+                                        {new Date(scan.timestamp).toLocaleString()} · {scan.findings?.length || 0} findings · ID: <code className="bg-[var(--bg-pill-accent)] text-[var(--text-accent)] px-1.5 py-0.5 rounded font-mono text-xs">{scan.id}</code>
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-3">
