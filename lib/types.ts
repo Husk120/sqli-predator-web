@@ -59,6 +59,22 @@ export interface EnumerationResult {
     discoveredPaths: string[];
 }
 
+export interface ScanConfig {
+    crawlDepth?: number;
+    requestDelay?: number;
+    timeout?: number;
+    testAllHeaders?: boolean;
+    testSecondOrder?: boolean;
+    booleanThreshold?: number;
+    authUsed?: boolean;
+    crawl_depth?: number;
+    request_delay?: number;
+    test_all_headers?: boolean;
+    test_second_order?: boolean;
+    boolean_threshold?: number;
+    auth_used?: boolean;
+}
+
 export interface ScanResult {
     id: string;
     timestamp: string;
@@ -70,6 +86,7 @@ export interface ScanResult {
     scanLog: string[];
     error?: string;
     duration: number;
+    config?: ScanConfig;
     enumeration?: {
         formsFound: number;
         paramsFound: number;

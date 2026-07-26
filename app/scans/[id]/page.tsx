@@ -262,6 +262,19 @@ function normalizeFinding(f: any): SQLiFinding {
     };
 }
 
+function normalizeScanConfig(c: any) {
+    if (!c) return undefined;
+    return {
+        crawlDepth: c.crawlDepth ?? c.crawl_depth ?? 1,
+        requestDelay: c.requestDelay ?? c.request_delay ?? 0.3,
+        timeout: c.timeout ?? 30,
+        testAllHeaders: c.testAllHeaders ?? c.test_all_headers ?? false,
+        testSecondOrder: c.testSecondOrder ?? c.test_second_order ?? false,
+        booleanThreshold: c.booleanThreshold ?? c.boolean_threshold ?? 10.0,
+        authUsed: c.authUsed ?? c.auth_used ?? false,
+    };
+}
+
 function normalizeScanResult(data: any): ScanResult {
     if (!data) return data;
     let ts = data.timestamp ?? data.created_at ?? data.createdAt;
@@ -281,6 +294,7 @@ function normalizeScanResult(data: any): ScanResult {
         duration: data.duration ?? data.duration_seconds ?? 0,
         scanLog: data.scanLog ?? data.scan_log ?? data.logs ?? [],
         findings: (data.findings || []).map(normalizeFinding),
+        config: normalizeScanConfig(data.config),
     };
 }
 
@@ -576,6 +590,51 @@ export default function ScanDetailPage() {
                 </div>
             </div>
 
+            {/* Scan Configuration */}
+            {scan.config && (
+                <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl p-4 shadow-sm">
+                    <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                        ⚙️ Scan Configuration
+                    </h2>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 text-xs">
+                        <div>
+                            <span className="text-[var(--text-muted)] block mb-0.5">Crawl Depth</span>
+                            <span className="font-mono font-medium text-[var(--text-primary)]">{scan.config.crawlDepth}</span>
+                        </div>
+                        <div>
+                            <span className="text-[var(--text-muted)] block mb-0.5">Request Delay</span>
+                            <span className="font-mono font-medium text-[var(--text-primary)]">{scan.config.requestDelay}s</span>
+                        </div>
+                        <div>
+                            <span className="text-[var(--text-muted)] block mb-0.5">Timeout</span>
+                            <span className="font-mono font-medium text-[var(--text-primary)]">{scan.config.timeout}s</span>
+                        </div>
+                        <div>
+                            <span className="text-[var(--text-muted)] block mb-0.5">Boolean Thresh</span>
+                            <span className="font-mono font-medium text-[var(--text-primary)]">{scan.config.booleanThreshold}%</span>
+                        </div>
+                        <div>
+                            <span className="text-[var(--text-muted)] block mb-0.5">HTTP Headers</span>
+                            <span className={`font-medium ${scan.config.testAllHeaders ? "text-[var(--text-accent)]" : "text-[var(--text-muted)]"}`}>
+                                {scan.config.testAllHeaders ? "Yes" : "No"}
+                            </span>
+                        </div>
+                        <div>
+                            <span className="text-[var(--text-muted)] block mb-0.5">Second-Order</span>
+                            <span className={`font-medium ${scan.config.testSecondOrder ? "text-[var(--text-accent)]" : "text-[var(--text-muted)]"}`}>
+                                {scan.config.testSecondOrder ? "Yes" : "No"}
+                            </span>
+                        </div>
+                        <div>
+                            <span className="text-[var(--text-muted)] block mb-0.5">Auth Used</span>
+                            <span className={`font-medium ${scan.config.authUsed ? "text-[var(--text-accent)]" : "text-[var(--text-muted)]"}`}>
+                                {scan.config.authUsed ? "Yes" : "No"}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Scan in Progress Redesign */}
             {scan.status === "running" && (
                 <div className="space-y-4">
@@ -850,12 +909,25 @@ export default function ScanDetailPage() {
                         </button>
                         <button
                             onClick={() => {
+                                const configSection = scan.config ? [
+                                    `## Scan Configuration`,
+                                    `- Crawl Depth: ${scan.config.crawlDepth}`,
+                                    `- Request Delay: ${scan.config.requestDelay}s`,
+                                    `- Timeout: ${scan.config.timeout}s`,
+                                    `- Boolean Threshold: ${scan.config.booleanThreshold}%`,
+                                    `- Test HTTP Headers: ${scan.config.testAllHeaders ? "Yes" : "No"}`,
+                                    `- Second-Order Detection: ${scan.config.testSecondOrder ? "Yes" : "No"}`,
+                                    `- Authentication Used: ${scan.config.authUsed ? "Yes" : "No"}`,
+                                    ``,
+                                ].join("\n") : "";
+
                                 const lines = [
                                     `# SQLi-PREDATOR Report — ${scan.target}`,
                                     `Scan ID: ${scan.id}`,
                                     `Date: ${new Date(scan.timestamp).toLocaleString()}`,
                                     `Duration: ${scan.duration?.toFixed(1)}s`,
                                     ``,
+                                    configSection,
                                     `## Summary`,
                                     `Critical: ${findings.filter(f => f.severity === "Critical").length}`,
                                     `High: ${findings.filter(f => f.severity === "High").length}`,
@@ -882,7 +954,7 @@ export default function ScanDetailPage() {
                                         ...f.remediationSteps,
                                         ``,
                                     ].join("\n")),
-                                ].join("\n");
+                                ].filter(Boolean).join("\n");
                                 const blob = new Blob([lines], { type: "text/markdown" });
                                 const url = URL.createObjectURL(blob);
                                 const a = document.createElement("a");
@@ -977,6 +1049,20 @@ export default function ScanDetailPage() {
         <h1>🦅 SQLi-PREDATOR Security Report</h1>
         <p><strong>Target:</strong> ${scan.target} · <strong>ID:</strong> <code>${scan.id}</code></p>
         <p><strong>Generated:</strong> ${new Date(scan.timestamp).toLocaleString()} · <strong>Duration:</strong> ${scan.duration?.toFixed(1) || '0'}s</p>
+        ${scan.config ? `
+        <div style="margin-top: 12px; border-top: 1px solid #E9EDEC; padding-top: 12px;">
+            <span class="label" style="font-weight: bold; margin-bottom: 6px;">Scan Configuration:</span>
+            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px;">
+                <div><span class="label">Crawl Depth</span><code>${scan.config.crawlDepth}</code></div>
+                <div><span class="label">Request Delay</span><code>${scan.config.requestDelay}s</code></div>
+                <div><span class="label">Timeout</span><code>${scan.config.timeout}s</code></div>
+                <div><span class="label">Boolean Thresh</span><code>${scan.config.booleanThreshold}%</code></div>
+                <div><span class="label">HTTP Headers</span><span>${scan.config.testAllHeaders ? 'Yes' : 'No'}</span></div>
+                <div><span class="label">2nd-Order</span><span>${scan.config.testSecondOrder ? 'Yes' : 'No'}</span></div>
+                <div><span class="label">Auth Used</span><span>${scan.config.authUsed ? 'Yes' : 'No'}</span></div>
+            </div>
+        </div>
+        ` : ''}
     </div>
     <h2>Vulnerability Findings (${scan.findings?.length || 0})</h2>
     ${findingsHtml || '<div class="card"><p>No findings recorded.</p></div>'}
