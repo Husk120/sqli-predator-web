@@ -298,6 +298,18 @@ function normalizeScanResult(data: any): ScanResult {
     };
 }
 
+function formatDuration(totalSeconds: number): string {
+    const s = Math.floor(Math.max(0, totalSeconds));
+    const hours = Math.floor(s / 3600);
+    const minutes = Math.floor((s % 3600) / 60);
+    const secs = s % 60;
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    if (hours > 0) {
+        return `${hours}:${pad(minutes)}:${pad(secs)}`;
+    }
+    return `${pad(minutes)}:${pad(secs)}`;
+}
+
 export default function ScanDetailPage() {
     const params = useParams();
     const id = params.id as string;
@@ -310,6 +322,17 @@ export default function ScanDetailPage() {
     const lastProgressRef = useRef<{ logLength: number; time: number } | null>(null);
     const startTimeRef = useRef<number | null>(null);
     const [etaText, setEtaText] = useState<string>("Calculating...");
+    const [elapsedSec, setElapsedSec] = useState<number>(0);
+
+    useEffect(() => {
+        if (!scan || scan.status !== "running") return;
+        const interval = setInterval(() => {
+            if (startTimeRef.current) {
+                setElapsedSec(Math.floor((Date.now() - startTimeRef.current) / 1000));
+            }
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [scan?.status]);
 
     useEffect(() => {
         console.log(`[SQLi-PREDATOR] ScanDetailPage mounted for ID: "${id}"`);
@@ -671,7 +694,9 @@ export default function ScanDetailPage() {
                             </div>
                             <div className="text-right">
                                 <span className="text-2xl font-extrabold text-[var(--accent-primary)] font-mono block">{scan.progress?.toFixed(0) || 0}%</span>
-                                <span className="text-xs text-[var(--text-muted)] font-mono">{etaText}</span>
+                                <span className="text-xs text-[var(--text-muted)] font-mono block">
+                                    Elapsed: {formatDuration(elapsedSec)} · {etaText}
+                                </span>
                             </div>
                         </div>
 
