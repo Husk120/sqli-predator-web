@@ -307,7 +307,9 @@ export default function ScanDetailPage() {
     const [isStalled, setIsStalled] = useState(false);
     const [stopping, setStopping] = useState(false);
     const retryCountRef = useRef(0);
-    const lastProgressRef = useRef<{ progress: number; time: number } | null>(null);
+    const lastProgressRef = useRef<{ logLength: number; time: number } | null>(null);
+    const startTimeRef = useRef<number | null>(null);
+    const [etaText, setEtaText] = useState<string>("Calculating...");
 
     useEffect(() => {
         console.log(`[SQLi-PREDATOR] ScanDetailPage mounted for ID: "${id}"`);
@@ -359,7 +361,6 @@ export default function ScanDetailPage() {
         };
 
         const fetchScanData = async (): Promise<{ statusResp: Response | null; data: any | null }> => {
-            // 1. Try Render API backend
             try {
                 const renderResp = await fetch(`https://sqli-predator-api.onrender.com/api/scan/${id}/status`);
                 if (renderResp.ok) {
@@ -368,7 +369,6 @@ export default function ScanDetailPage() {
                 }
             } catch { }
 
-            // 2. Fallback to local Vercel API route
             try {
                 const localResp = await fetch(`/api/scan/status/${id}`);
                 if (localResp.ok) {
@@ -381,7 +381,6 @@ export default function ScanDetailPage() {
         };
 
         const fetchReportData = async (): Promise<any | null> => {
-            // 1. Try Render API report
             try {
                 const renderReportResp = await fetch(`https://sqli-predator-api.onrender.com/api/scan/${id}/report`);
                 if (renderReportResp.ok) {
@@ -389,7 +388,6 @@ export default function ScanDetailPage() {
                 }
             } catch { }
 
-            // 2. Fallback to local Vercel API report
             try {
                 const localReportResp = await fetch(`/api/report/${id}`);
                 if (localReportResp.ok) {
@@ -433,18 +431,38 @@ export default function ScanDetailPage() {
 
                 if (data.status === "running") {
                     const now = Date.now();
-                    const progress = data.progress || 0;
+                    if (!startTimeRef.current) {
+                        startTimeRef.current = now;
+                    }
+
+                    const progressPct = data.progress || 0;
+                    if (progressPct > 0 && startTimeRef.current) {
+                        const elapsedSec = (now - startTimeRef.current) / 1000;
+                        const totalEstSec = elapsedSec / (progressPct / 100);
+                        const remainingSec = Math.max(0, totalEstSec - elapsedSec);
+                        if (remainingSec >= 60) {
+                            const mins = Math.ceil(remainingSec / 60);
+                            if (isMounted) setEtaText(`~${mins} min remaining`);
+                        } else {
+                            const secs = Math.ceil(remainingSec);
+                            if (isMounted) setEtaText(`~${secs} sec remaining`);
+                        }
+                    } else if (isMounted) {
+                        setEtaText("Calculating...");
+                    }
+
+                    const logLength = data.scan_log?.length || 0;
                     if (lastProgressRef.current) {
-                        if (progress === lastProgressRef.current.progress) {
+                        if (logLength === lastProgressRef.current.logLength) {
                             if (now - lastProgressRef.current.time > 90_000) {
                                 if (isMounted) setIsStalled(true);
                             }
                         } else {
-                            lastProgressRef.current = { progress, time: now };
+                            lastProgressRef.current = { logLength, time: now };
                             if (isMounted) setIsStalled(false);
                         }
                     } else {
-                        lastProgressRef.current = { progress, time: now };
+                        lastProgressRef.current = { logLength, time: now };
                     }
                 }
 
@@ -652,7 +670,8 @@ export default function ScanDetailPage() {
                                 <p className="text-xs text-[var(--text-secondary)] mt-0.5">{scan.currentPhase || "Executing security probes..."}</p>
                             </div>
                             <div className="text-right">
-                                <span className="text-2xl font-extrabold text-[var(--accent-primary)] font-mono">{scan.progress?.toFixed(0) || 0}%</span>
+                                <span className="text-2xl font-extrabold text-[var(--accent-primary)] font-mono block">{scan.progress?.toFixed(0) || 0}%</span>
+                                <span className="text-xs text-[var(--text-muted)] font-mono">{etaText}</span>
                             </div>
                         </div>
 
@@ -714,8 +733,8 @@ export default function ScanDetailPage() {
 
                         {isStalled && (
                             <div className="bg-yellow-500/10 rounded-xl p-3 mt-2">
-                                <p className="text-xs text-yellow-700 leading-relaxed font-medium">
-                                    ⚠️ Scan progress has not changed for over 90 seconds. Serverless processing may be delayed or cold-starting.
+                                <p className="text-xs text-yellow-700 dark:text-yellow-400 leading-relaxed font-medium">
+                                    ⚠️ No new scan activity for over 90 seconds. This may indicate a stall, or the server may be cold-starting.
                                 </p>
                             </div>
                         )}
@@ -750,9 +769,7 @@ export default function ScanDetailPage() {
                                     );
                                 })
                             ) : (
-                                <div className="text-[#8A9694] text-center py-6 italic text-xs">
-                                    Initializing scanner engine... Executing baseline checks and payload injections...
-                                </div>
+                                <p className="text-[var(--text-muted)] italic text-xs">Waiting for scan output...</p>
                             )}
                         </div>
                     </div>
@@ -921,6 +938,14 @@ export default function ScanDetailPage() {
                                     ``,
                                 ].join("\n") : "";
 
+                                const logSection = scan.scanLog && scan.scanLog.length > 0 ? [
+                                    `## Scan Activity Log`,
+                                    `\`\`\``,
+                                    ...scan.scanLog,
+                                    `\`\`\``,
+                                    ``,
+                                ].join("\n") : "";
+
                                 const lines = [
                                     `# SQLi-PREDATOR Report — ${scan.target}`,
                                     `Scan ID: ${scan.id}`,
@@ -934,6 +959,7 @@ export default function ScanDetailPage() {
                                     `Medium: ${findings.filter(f => f.severity === "Medium").length}`,
                                     `Low: ${findings.filter(f => f.severity === "Low").length}`,
                                     ``,
+                                    logSection,
                                     `## Findings`,
                                     ...findings.map((f, i) => [
                                         `### [${f.severity}] Finding ${i + 1}: ${f.detectionMethod} on ${f.parameter}`,
@@ -1015,6 +1041,13 @@ export default function ScanDetailPage() {
                                     </div>
                                 `).join('');
 
+                                const scanLogHtml = scan.scanLog && scan.scanLog.length > 0 ? `
+                                    <div class="card">
+                                        <h2 style="font-size: 16px; margin: 0 0 12px 0;">📋 Scan Activity Log (${scan.scanLog.length} entries)</h2>
+                                        <pre style="max-height: 240px; overflow-y: auto;">${scan.scanLog.join('\n')}</pre>
+                                    </div>
+                                ` : '';
+
                                 const htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1064,6 +1097,7 @@ export default function ScanDetailPage() {
         </div>
         ` : ''}
     </div>
+    ${scanLogHtml}
     <h2>Vulnerability Findings (${scan.findings?.length || 0})</h2>
     ${findingsHtml || '<div class="card"><p>No findings recorded.</p></div>'}
 </body>
